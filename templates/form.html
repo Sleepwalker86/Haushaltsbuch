@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="margin-top:16px; display:flex; align-items:center; gap:16px; justify-content:space-between;">
+  <h1 style="margin:0;">Buchung erfassen</h1>
+  <a href="{{ url_for('dashboard') }}">
+    <button type="button">Zum Dashboard</button>
+  </a>
+</div>
+
+{% if get_flashed_messages() %}
+  <div class="messages">
+    {% for msg in get_flashed_messages(with_categories=true) %}
+      {% set cat, text = msg %}
+      <div class="msg {{ cat }}">{{ text }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<form method="post">
+  <div>
+    <label for="datum">Datum</label>
+    <input type="date" id="datum" name="datum" required>
+  </div>
+
+  <div>
+    <label for="typ">Typ</label>
+    <select id="typ" name="typ" required>
+      <option value="Ausgaben" selected>Ausgaben</option>
+      <option value="Einnahmen">Einnahmen</option>
+    </select>
+  </div>
+
+  <div>
+    <label for="kategorie">Kategorie</label>
+    <select id="kategorie" name="kategorie" required>
+      <option value="">Bitte wählen</option>
+      {% for k in kategorien %}
+        <option value="{{ k }}">{{ k }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="betrag">Betrag</label>
+    <input type="text" id="betrag" name="betrag" inputmode="decimal" placeholder="z.B. 25,50" required>
+  </div>
+
+  <div>
+    <label for="beschreibung">Beschreibung</label>
+    <textarea id="beschreibung" name="beschreibung" rows="3" placeholder="z.B. Barzahlung Supermarkt" required></textarea>
+  </div>
+
+  <button type="submit">Speichern</button>
+</form>
+
+{% endblock %}
+

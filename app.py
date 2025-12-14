@@ -1,0 +1,336 @@
+from datetime import datetime, date
+from flask import Flask, render_template, request, redirect, flash, url_for
+import math
+
+from db import get_connection
+
+app = Flask(__name__)
+app.secret_key = "change-me-please"  # für Flash-Messages
+
+
+def fetch_categories():
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT kategorie FROM kategorien ORDER BY kategorie")
+        rows = cur.fetchall()
+        cur.close()
+        kategorien = [row[0] for row in rows]
+        # "Sonstiges" hinzufügen, falls nicht vorhanden
+        if "Sonstiges" not in kategorien:
+            kategorien.append("Sonstiges")
+        return kategorien
+
+
+def fetch_category_summary(year=None, month=None):
+    where = []
+    params = []
+    if year:
+        where.append("YEAR(datum) = %s")
+        params.append(year)
+    if month:
+        where.append("MONTH(datum) = %s")
+        params.append(month)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"""
+        SELECT kategorie,
+               SUM(haben) AS haben_sum,
+               SUM(soll) AS soll_sum
+        FROM buchungen
+        {where_sql}
+        GROUP BY kategorie
+        ORDER BY kategorie
+    """
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+        cur.close()
+        return [
+            {"kategorie": r[0], "haben": float(r[1] or 0), "soll": float(r[2] or 0)}
+            for r in rows
+        ]
+
+
+def fetch_time_series(year=None, month=None):
+    where = []
+    params = []
+    if year:
+        where.append("YEAR(datum) = %s")
+        params.append(year)
+    if month:
+        where.append("MONTH(datum) = %s")
+        params.append(month)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"""
+        SELECT DATE_FORMAT(datum, '%%Y-%%m-01') AS period,
+               SUM(haben - soll) AS saldo
+        FROM buchungen
+        {where_sql}
+        GROUP BY period
+        ORDER BY period
+    """
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+        cur.close()
+        return [{"period": r[0], "saldo": float(r[1] or 0)} for r in rows]
+
+
+def fetch_buchungen(year=None, month=None, page=1, per_page=30):
+    where = []
+    params = []
+    if year:
+        where.append("YEAR(datum) = %s")
+        params.append(year)
+    if month:
+        where.append("MONTH(datum) = %s")
+        params.append(month)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    
+    # Gesamtanzahl
+    count_sql = f"SELECT COUNT(*) FROM buchungen {where_sql}"
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(count_sql, params)
+        total = cur.fetchone()[0]
+        cur.close()
+    
+    # Buchungen mit Pagination
+    offset = (page - 1) * per_page
+    sql = f"""
+        SELECT id, datum, art, beschreibung, soll, haben, kategorie, konto
+        FROM buchungen
+        {where_sql}
+        ORDER BY datum DESC, id DESC
+        LIMIT %s OFFSET %s
+    """
+    params_with_pagination = params + [per_page, offset]
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params_with_pagination)
+        rows = cur.fetchall()
+        cur.close()
+        buchungen = [
+            {
+                "id": r[0],
+                "datum": r[1],
+                "art": r[2] or "",
+                "beschreibung": r[3] or "",
+                "soll": float(r[4] or 0),
+                "haben": float(r[5] or 0),
+                "kategorie": r[6] or "",
+                "konto": r[7] or "",
+            }
+            for r in rows
+        ]
+    
+    total_pages = math.ceil(total / per_page) if total > 0 else 1
+    return buchungen, total, total_pages
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        try:
+            datum_raw = request.form.get("datum", "").strip()
+            betrag_raw = request.form.get("betrag", "").strip()
+            beschreibung = request.form.get("beschreibung", "").strip()
+            kategorie = request.form.get("kategorie", "").strip()
+            typ = request.form.get("typ", "Ausgaben").strip()
+
+            if not datum_raw or not betrag_raw or not kategorie:
+                raise ValueError("Datum, Betrag und Kategorie sind erforderlich.")
+
+            # Betrag parsen (unterstützt Komma und Punkt als Dezimaltrenner)
+            betrag_str = betrag_raw.strip()
+            # Wenn Komma vorhanden, ist es Dezimaltrenner (deutsches Format)
+            if "," in betrag_str:
+                betrag_str = betrag_str.replace(".", "").replace(",", ".")
+            # Wenn nur Punkt vorhanden, prüfe ob Dezimaltrenner (max 2 Nachkommastellen)
+            elif "." in betrag_str:
+                parts = betrag_str.split(".")
+                # Wenn nach dem letzten Punkt nur 1-2 Ziffern, ist es Dezimaltrenner
+                if len(parts) > 1 and len(parts[-1]) <= 2:
+                    # Punkt ist Dezimaltrenner, behalte ihn
+                    betrag_str = betrag_str
+                else:
+                    # Punkt ist Tausender-Trenner, entferne ihn
+                    betrag_str = betrag_str.replace(".", "")
+            betrag = abs(float(betrag_str))
+            datum = datetime.strptime(datum_raw, "%Y-%m-%d").date()
+
+            # Mapping auf soll/haben basierend auf Typ
+            if typ == "Ausgaben":
+                soll = betrag
+                haben = 0
+            else:  # Einnahmen
+                soll = 0
+                haben = betrag
+
+            with get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    INSERT INTO buchungen (datum, art, beschreibung, soll, haben, kategorie, konto)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        datum,
+                        "Manuell",
+                        beschreibung,
+                        soll,
+                        haben,
+                        kategorie,
+                        "1015504887",
+                    ),
+                )
+                conn.commit()
+                cur.close()
+
+            flash("Buchung gespeichert.", "success")
+            return redirect(url_for("index"))
+        except Exception as exc:
+            flash(f"Fehler: {exc}", "error")
+
+    kategorien = fetch_categories()
+    return render_template("form.html", kategorien=kategorien)
+
+
+@app.route("/dashboard")
+def dashboard():
+    # Standard-Filter auf aktuelles Jahr/Monat
+    today = date.today()
+    default_year = str(today.year)
+    default_month = str(today.month)
+    
+    year = request.args.get("year") or default_year
+    month = request.args.get("month") or default_month
+    page = int(request.args.get("page", 1))
+    
+    if year and not year.isdigit():
+        year = default_year
+    if month and not month.isdigit():
+        month = default_month
+    if page < 1:
+        page = 1
+
+    cat_summary = fetch_category_summary(year, month)
+    time_series = fetch_time_series(year, month)
+    buchungen, total_buchungen, total_pages = fetch_buchungen(year, month, page)
+
+    labels_cat = [c["kategorie"] for c in cat_summary]
+    values_haben = [c["haben"] for c in cat_summary]
+    values_soll = [c["soll"] for c in cat_summary]
+
+    labels_ts = [t["period"] for t in time_series]
+    values_ts = [t["saldo"] for t in time_series]
+
+    kategorien = fetch_categories()
+
+    return render_template(
+        "dashboard.html",
+        year=year or "",
+        month=month or "",
+        labels_cat=labels_cat,
+        values_haben=values_haben,
+        values_soll=values_soll,
+        labels_ts=labels_ts,
+        values_ts=values_ts,
+        buchungen=buchungen,
+        current_page=page,
+        total_pages=total_pages,
+        total_buchungen=total_buchungen,
+        kategorien=kategorien,
+    )
+
+
+@app.route("/edit/<int:buchung_id>", methods=["GET", "POST"])
+def edit_buchung(buchung_id):
+    if request.method == "POST":
+        try:
+            datum_raw = request.form.get("datum", "").strip()
+            art = request.form.get("art", "").strip()
+            beschreibung = request.form.get("beschreibung", "").strip()
+            kategorie = request.form.get("kategorie", "").strip()
+            typ = request.form.get("typ", "Ausgaben").strip()
+            betrag_raw = request.form.get("betrag", "").strip()
+
+            if not datum_raw or not betrag_raw or not kategorie:
+                raise ValueError("Datum, Betrag und Kategorie sind erforderlich.")
+
+            # Betrag parsen (unterstützt Komma und Punkt als Dezimaltrenner)
+            betrag_str = betrag_raw.strip()
+            # Wenn Komma vorhanden, ist es Dezimaltrenner (deutsches Format)
+            if "," in betrag_str:
+                betrag_str = betrag_str.replace(".", "").replace(",", ".")
+            # Wenn nur Punkt vorhanden, prüfe ob Dezimaltrenner (max 2 Nachkommastellen)
+            elif "." in betrag_str:
+                parts = betrag_str.split(".")
+                # Wenn nach dem letzten Punkt nur 1-2 Ziffern, ist es Dezimaltrenner
+                if len(parts) > 1 and len(parts[-1]) <= 2:
+                    # Punkt ist Dezimaltrenner, behalte ihn
+                    betrag_str = betrag_str
+                else:
+                    # Punkt ist Tausender-Trenner, entferne ihn
+                    betrag_str = betrag_str.replace(".", "")
+            betrag = abs(float(betrag_str))
+            datum = datetime.strptime(datum_raw, "%Y-%m-%d").date()
+
+            # Mapping auf soll/haben basierend auf Typ
+            if typ == "Ausgaben":
+                soll = betrag
+                haben = 0
+            else:  # Einnahmen
+                soll = 0
+                haben = betrag
+
+            with get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    UPDATE buchungen
+                    SET datum=%s, art=%s, beschreibung=%s, soll=%s, haben=%s, kategorie=%s
+                    WHERE id=%s
+                    """,
+                    (datum, art, beschreibung, soll, haben, kategorie, buchung_id),
+                )
+                conn.commit()
+                cur.close()
+
+            flash("Buchung aktualisiert.", "success")
+            return redirect(url_for("dashboard", year=request.args.get("year"), month=request.args.get("month"), page=request.args.get("page", 1)))
+        except Exception as exc:
+            flash(f"Fehler: {exc}", "error")
+
+    # Buchung laden
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, datum, art, beschreibung, soll, haben, kategorie, konto FROM buchungen WHERE id=%s",
+            (buchung_id,),
+        )
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            flash("Buchung nicht gefunden.", "error")
+            return redirect(url_for("dashboard"))
+
+        buchung = {
+            "id": row[0],
+            "datum": row[1],
+            "art": row[2] or "",
+            "beschreibung": row[3] or "",
+            "soll": float(row[4] or 0),
+            "haben": float(row[5] or 0),
+            "kategorie": row[6] or "",
+            "konto": row[7] or "",
+        }
+
+    kategorien = fetch_categories()
+    return render_template("edit_buchung.html", buchung=buchung, kategorien=kategorien)
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5001)
+

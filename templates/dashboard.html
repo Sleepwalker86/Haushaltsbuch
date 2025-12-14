@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="margin-top:16px; display:flex; align-items:center; gap:16px; justify-content:space-between;">
+  <h1 style="margin:0;">Dashboard</h1>
+  <a href="{{ url_for('index') }}">
+    <button type="button">Zur Startseite</button>
+  </a>
+</div>
+
+<form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:16px;">
+  <div style="display:grid; gap:6px; min-width:120px; flex:1 1 140px;">
+    <label for="year">Jahr</label>
+    <input type="number" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
+  </div>
+  <div style="display:grid; gap:6px; min-width:120px; flex:1 1 140px;">
+    <label for="month">Monat</label>
+    <input type="number" id="month" name="month" placeholder="1-12" value="{{ month }}" min="1" max="12">
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <button type="submit">Filter anwenden</button>
+    <a href="{{ url_for('dashboard') }}" class="muted" style="align-self:center;">Filter zurücksetzen</a>
+  </div>
+  <input type="hidden" name="page" value="1">
+</form>
+
+<div style="display:grid; gap:18px;">
+  <div>
+    <h3>Kategorien (Einnahmen/Ausgaben)</h3>
+    <canvas id="catChart" height="200"></canvas>
+  </div>
+  <div>
+    <h3>Ausgaben (Kategorien)</h3>
+    <canvas id="pieChart" height="200"></canvas>
+  </div>
+</div>
+
+<div style="margin-top:32px;">
+  <h3>Buchungen ({{ total_buchungen }} Einträge)</h3>
+  {% if buchungen %}
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; margin-top:12px;">
+      <thead>
+        <tr style="background:#f3f4f6; border-bottom:2px solid #e5e7eb;">
+          <th style="padding:10px; text-align:left; font-weight:600;">Datum</th>
+          <th style="padding:10px; text-align:left; font-weight:600;">Art</th>
+          <th style="padding:10px; text-align:left; font-weight:600;">Beschreibung</th>
+          <th style="padding:10px; text-align:right; font-weight:600;">Soll</th>
+          <th style="padding:10px; text-align:right; font-weight:600;">Haben</th>
+          <th style="padding:10px; text-align:left; font-weight:600;">Kategorie</th>
+          <th style="padding:10px; text-align:center; font-weight:600;">Aktion</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in buchungen %}
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:10px;">{{ b.datum.strftime('%d.%m.%Y') if b.datum else '' }}</td>
+          <td style="padding:10px;">{{ b.art }}</td>
+          <td style="padding:10px;">{{ b.beschreibung }}</td>
+          <td style="padding:10px; text-align:right; color:{% if b.soll > 0 %}#ef4444{% else %}#6b7280{% endif %};">
+            {% if b.soll > 0 %}{{ "%.2f"|format(b.soll) }} €{% else %}-{% endif %}
+          </td>
+          <td style="padding:10px; text-align:right; color:{% if b.haben > 0 %}#22c55e{% else %}#6b7280{% endif %};">
+            {% if b.haben > 0 %}{{ "%.2f"|format(b.haben) }} €{% else %}-{% endif %}
+          </td>
+          <td style="padding:10px;">{{ b.kategorie }}</td>
+          <td style="padding:10px; text-align:center;">
+            <a href="{{ url_for('edit_buchung', buchung_id=b.id, year=year, month=month, page=current_page) }}" 
+               style="display:inline-flex; align-items:center; justify-content:center; padding:6px; background:#3b82f6; color:white; text-decoration:none; border-radius:4px; width:28px; height:28px;"
+               title="Bearbeiten">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  {% if total_pages > 1 %}
+  <div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-top:20px; flex-wrap:wrap;">
+    {% if current_page > 1 %}
+    <a href="{{ url_for('dashboard', year=year, month=month, page=current_page-1) }}" style="padding:8px 16px; background:#3b82f6; color:white; text-decoration:none; border-radius:4px;">← Zurück</a>
+    {% endif %}
+    
+    <span style="padding:8px 16px;">
+      Seite {{ current_page }} von {{ total_pages }}
+    </span>
+    
+    {% if current_page < total_pages %}
+    <a href="{{ url_for('dashboard', year=year, month=month, page=current_page+1) }}" style="padding:8px 16px; background:#3b82f6; color:white; text-decoration:none; border-radius:4px;">Weiter →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <p style="margin-top:12px; color:#6b7280;">Keine Buchungen gefunden.</p>
+  {% endif %}
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const catCtx = document.getElementById('catChart');
+  const pieCtx = document.getElementById('pieChart');
+
+  const labelsCat = {{ labels_cat|tojson }};
+  const valuesHaben = {{ values_haben|tojson }};
+  const valuesSoll = {{ values_soll|tojson }};
+
+  new Chart(catCtx, {
+    type: 'bar',
+    data: {
+      labels: labelsCat,
+      datasets: [
+        { label: 'Einnahmen', data: valuesHaben, backgroundColor: '#22c55e' },
+        { label: 'Ausgaben', data: valuesSoll, backgroundColor: '#ef4444' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  // Ausgaben-Pie (nutzt Soll-Werte)
+  new Chart(pieCtx, {
+    type: 'pie',
+    data: {
+      labels: labelsCat,
+      datasets: [{
+        label: 'Ausgaben',
+        data: valuesSoll,
+        backgroundColor: [
+          '#ef4444','#f97316','#f59e0b','#10b981','#3b82f6',
+          '#8b5cf6','#ec4899','#14b8a6','#a855f7','#f472b6'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+</script>
+{% endblock %}
+
