@@ -4,6 +4,8 @@ venv/
 env/
 ENV/
 __pycache__/
+import/
+imported/
 
 # Python
 __pycache__/
