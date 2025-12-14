@@ -1,0 +1,8 @@
+{
+    "DB_CONFIG": {
+        "host": "192.168.10.99",
+        "user": "smo",
+        "password": "1234",
+        "database": "Haushaltsbuch"
+    }
+}
