@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, flash, url_for
 import math
+import os
 import subprocess
 import sys
 
@@ -549,6 +550,32 @@ def settings():
             pass
 
     return render_template("settings.html", konten=konten, edit_konto=edit_konto)
+
+
+@app.route("/upload_csv", methods=["POST"])
+def upload_csv():
+    file = request.files.get("csv_file")
+    if not file or file.filename == "":
+        flash("Bitte eine CSV-Datei auswählen.", "error")
+        return redirect(url_for("settings"))
+
+    filename = os.path.basename(file.filename)
+    if not filename.lower().endswith(".csv"):
+        flash("Nur CSV-Dateien sind erlaubt.", "error")
+        return redirect(url_for("settings"))
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    import_dir = os.path.join(base_dir, "import")
+    os.makedirs(import_dir, exist_ok=True)
+
+    target_path = os.path.join(import_dir, filename)
+    try:
+        file.save(target_path)
+        flash(f"Datei '{filename}' wurde nach 'import' hochgeladen.", "success")
+    except Exception as exc:
+        flash(f"CSV konnte nicht hochgeladen werden: {exc}", "error")
+
+    return redirect(url_for("settings"))
 
 
 if __name__ == "__main__":

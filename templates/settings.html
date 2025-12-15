@@ -107,6 +107,17 @@
         </button>
       </form>
     </div>
+
+    <div class="col-12 col-md-6">
+      <form method="post" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data" class="mt-3">
+        <div class="input-group">
+          <input type="file" class="form-control" name="csv_file" accept=".csv" required>
+          <button type="submit" class="btn btn-outline-secondary">
+            CSV hochladen
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}
