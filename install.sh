@@ -1,11 +1,11 @@
 #!/bin/bash
-
 set -e
 
 APP_NAME="finanzapp"
 APP_DIR="/opt/finanzapp"
 APP_USER="finanzapp"
 SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
+GIT_REPO="https://github.com/Sleepwalker86/Haushaltsbuch.git"
 
 echo "🚀 Installation von ${APP_NAME} startet..."
 
@@ -33,7 +33,8 @@ apt install -y \
   python3-mysql.connector \
   mariadb-client \
   ca-certificates \
-  curl
+  curl \
+  git
 
 # -----------------------------
 # USER
@@ -44,11 +45,60 @@ if ! id "$APP_USER" &>/dev/null; then
 fi
 
 # -----------------------------
-# APP ORDNER
+# APP ORDNER & GIT
 # -----------------------------
-echo "📁 Erstelle App-Verzeichnis..."
-mkdir -p "$APP_DIR"
+if [ -d "$APP_DIR/.git" ]; then
+    echo "🔄 App existiert bereits, aktualisiere mit git pull..."
+    cd "$APP_DIR"
+    git reset --hard
+    git pull
+else
+    echo "📁 Erstelle App-Verzeichnis und klone Repo..."
+    mkdir -p "$APP_DIR"
+    chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
+    git clone "$GIT_REPO" "$APP_DIR"
+fi
+
+# Unterordner erstellen
+mkdir -p "$APP_DIR/import" "$APP_DIR/imported"
 chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
+
+# -----------------------------
+# CONFIG.JSON
+# -----------------------------
+CONFIG_FILE="$APP_DIR/config.json"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "⚙️ config.json existiert nicht, erstelle neue..."
+    
+    read -p "DB Host [192.168.10.99]: " DB_HOST
+    DB_HOST=${DB_HOST:-192.168.10.99}
+
+    read -p "DB User [smo]: " DB_USER
+    DB_USER=${DB_USER:-smo}
+
+    read -sp "DB Password [1234]: " DB_PASS
+    echo
+    DB_PASS=${DB_PASS:-1234}
+
+    read -p "DB Name [Haushaltsbuch]: " DB_NAME
+    DB_NAME=${DB_NAME:-Haushaltsbuch}
+
+    cat > "$CONFIG_FILE" <<EOF
+{
+  "DB_CONFIG": {
+    "host": "$DB_HOST",
+    "user": "$DB_USER",
+    "password": "$DB_PASS",
+    "database": "$DB_NAME"
+  }
+}
+EOF
+
+    chown "$APP_USER":"$APP_USER" "$CONFIG_FILE"
+    chmod 600 "$CONFIG_FILE"
+else
+    echo "✅ config.json existiert bereits, überspringe Erstellung."
+fi
 
 # -----------------------------
 # PYTHON ABHÄNGIGKEITEN
@@ -61,7 +111,6 @@ pip3 install flask mysql-connector-python pandas python-dateutil
 # SYSTEMD SERVICE
 # -----------------------------
 echo "⚙️ Erstelle systemd Service..."
-
 cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=Finanz App
