@@ -16,21 +16,38 @@
 
 <div class="row g-4">
   <div class="col-12 col-lg-5">
-    <h2 class="h5 mb-3">Neues Konto anlegen</h2>
+    <h2 class="h5 mb-3">
+      {% if edit_konto %}Konto bearbeiten{% else %}Neues Konto anlegen{% endif %}
+    </h2>
     <form method="post">
+      {% if edit_konto %}
+        <input type="hidden" name="konto_id" value="{{ edit_konto.id }}">
+      {% endif %}
       <div class="mb-3">
         <label for="name" class="form-label">Name</label>
-        <input type="text" class="form-control" id="name" name="name" placeholder="z.B. Girokonto ING" required>
+        <input type="text" class="form-control" id="name" name="name"
+               value="{{ edit_konto.name if edit_konto else '' }}"
+               placeholder="z.B. Girokonto ING" required>
       </div>
       <div class="mb-3">
         <label for="beschreibung" class="form-label">Beschreibung</label>
-        <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2" placeholder="z.B. Hauptkonto Haushalt"></textarea>
+        <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2"
+                  placeholder="z.B. Hauptkonto Haushalt">{{ edit_konto.beschreibung if edit_konto else '' }}</textarea>
       </div>
       <div class="mb-3">
         <label for="iban" class="form-label">IBAN</label>
-        <input type="text" class="form-control" id="iban" name="iban" placeholder="z.B. DE00 1234 5678 9000 0000 00">
+        <input type="text" class="form-control" id="iban" name="iban"
+               value="{{ edit_konto.iban if edit_konto else '' }}"
+               placeholder="z.B. DE00 1234 5678 9000 0000 00">
       </div>
-      <button type="submit" class="btn btn-primary">Konto speichern</button>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          {% if edit_konto %}Konto aktualisieren{% else %}Konto speichern{% endif %}
+        </button>
+        {% if edit_konto %}
+          <a href="{{ url_for('settings') }}" class="btn btn-outline-secondary">Abbrechen</a>
+        {% endif %}
+      </div>
     </form>
   </div>
 
@@ -43,7 +60,8 @@
           <tr>
             <th style="width: 25%;">Name</th>
             <th style="width: 35%;">Beschreibung</th>
-            <th style="width: 40%;">IBAN</th>
+            <th style="width: 30%;">IBAN</th>
+            <th style="width: 10%;" class="text-center">Aktion</th>
           </tr>
         </thead>
         <tbody>
@@ -52,6 +70,17 @@
             <td>{{ k.name }}</td>
             <td>{{ k.beschreibung }}</td>
             <td>{{ k.iban }}</td>
+            <td class="text-center">
+              <a href="{{ url_for('settings', edit_id=k.id) }}"
+                 class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
+                 style="width: 28px; height: 28px; padding: 0;"
+                 title="Konto bearbeiten">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </a>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -63,6 +92,7 @@
   </div>
 </div>
 {% endblock %}
+
 
 
 

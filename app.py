@@ -482,6 +482,7 @@ def delete_buchung(buchung_id):
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
     if request.method == "POST":
+        konto_id = request.form.get("konto_id")
         name = request.form.get("name", "").strip()
         beschreibung = request.form.get("beschreibung", "").strip()
         iban = request.form.get("iban", "").strip()
@@ -492,16 +493,27 @@ def settings():
             try:
                 with get_connection() as conn:
                     cur = conn.cursor()
-                    cur.execute(
-                        """
-                        INSERT INTO konten (name, beschreibung, iban)
-                        VALUES (%s, %s, %s)
-                        """,
-                        (name, beschreibung, iban),
-                    )
+                    if konto_id:
+                        cur.execute(
+                            """
+                            UPDATE konten
+                            SET name=%s, beschreibung=%s, iban=%s
+                            WHERE id=%s
+                            """,
+                            (name, beschreibung, iban, konto_id),
+                        )
+                        flash("Konto wurde aktualisiert.", "success")
+                    else:
+                        cur.execute(
+                            """
+                            INSERT INTO konten (name, beschreibung, iban)
+                            VALUES (%s, %s, %s)
+                            """,
+                            (name, beschreibung, iban),
+                        )
+                        flash("Konto wurde angelegt.", "success")
                     conn.commit()
                     cur.close()
-                flash("Konto wurde angelegt.", "success")
             except Exception as exc:
                 flash(f"Konto konnte nicht angelegt werden: {exc}", "error")
 
@@ -513,7 +525,30 @@ def settings():
     except Exception as exc:
         flash(f"Konten konnten nicht geladen werden (Tabelle vorhanden?): {exc}", "error")
 
-    return render_template("settings.html", konten=konten)
+    # Optional: Konto zum Bearbeiten vorselektieren (Future: eigenes Edit-Formular)
+    edit_id = request.args.get("edit_id")
+    edit_konto = None
+    if edit_id:
+        try:
+            with get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT id, name, beschreibung, iban FROM konten WHERE id=%s",
+                    (edit_id,),
+                )
+                row = cur.fetchone()
+                cur.close()
+            if row:
+                edit_konto = {
+                    "id": row[0],
+                    "name": row[1] or "",
+                    "beschreibung": row[2] or "",
+                    "iban": row[3] or "",
+                }
+        except Exception:
+            pass
+
+    return render_template("settings.html", konten=konten, edit_konto=edit_konto)
 
 
 if __name__ == "__main__":
