@@ -5,6 +5,8 @@ APP_NAME="finanzapp"
 APP_DIR="/opt/finanzapp"
 APP_USER="finanzapp"
 SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
+IMPORT_SERVICE_FILE="/etc/systemd/system/${APP_NAME}-import.service"
+IMPORT_TIMER_FILE="/etc/systemd/system/${APP_NAME}-import.timer"
 GIT_REPO="https://github.com/Sleepwalker86/Haushaltsbuch.git"
 
 echo "🚀 Installation von ${APP_NAME} startet..."
@@ -126,11 +128,41 @@ Environment=PYTHONUNBUFFERED=1
 WantedBy=multi-user.target
 EOF
 
+# Import-Service (einmaliger Lauf von import_data.py)
+echo "⚙️ Erstelle systemd Import-Service..."
+cat > "$IMPORT_SERVICE_FILE" <<EOF
+[Unit]
+Description=Finanz App CSV-Import
+After=network.target
+
+[Service]
+Type=oneshot
+User=${APP_USER}
+WorkingDirectory=${APP_DIR}
+ExecStart=/usr/bin/python3 ${APP_DIR}/import_data.py
+Environment=PYTHONUNBUFFERED=1
+EOF
+
+# Timer, der den Import-Service alle 10 Minuten ausführt
+echo "⚙️ Erstelle systemd Import-Timer..."
+cat > "$IMPORT_TIMER_FILE" <<EOF
+[Unit]
+Description=Finanz App CSV-Import alle 10 Minuten
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+Unit=${APP_NAME}-import.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 # -----------------------------
 # RECHTE
 # -----------------------------
-chown root:root "$SERVICE_FILE"
-chmod 644 "$SERVICE_FILE"
+chown root:root "$SERVICE_FILE" "$IMPORT_SERVICE_FILE" "$IMPORT_TIMER_FILE"
+chmod 644 "$SERVICE_FILE" "$IMPORT_SERVICE_FILE" "$IMPORT_TIMER_FILE"
 
 # -----------------------------
 # SYSTEMD AKTUALISIEREN
@@ -139,6 +171,8 @@ echo "🔄 systemd neu laden..."
 systemctl daemon-reload
 systemctl enable ${APP_NAME}
 systemctl restart ${APP_NAME}
+systemctl enable ${APP_NAME}-import.timer
+systemctl restart ${APP_NAME}-import.timer
 
 # -----------------------------
 # STATUS
