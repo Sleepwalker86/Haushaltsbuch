@@ -6,9 +6,29 @@ import subprocess
 import sys
 
 from db import get_connection
+import json
 
 app = Flask(__name__)
 app.secret_key = "change-me-please"  # für Flash-Messages
+
+
+def load_config():
+    """Lädt die gesamte config.json."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    cfg_path = os.path.join(base_dir, "config.json")
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def save_config(config):
+    """Speichert die gesamte config.json."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    cfg_path = os.path.join(base_dir, "config.json")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=4, ensure_ascii=False)
 
 
 def fetch_categories():
@@ -700,6 +720,26 @@ def settings():
 
             return redirect(url_for("settings", tab="keywords"))
 
+        # ---------------------------------
+        # Paperless-Einstellungen
+        # ---------------------------------
+        elif form_type == "paperless":
+            paperless_ip = request.form.get("paperless_ip", "").strip()
+            paperless_token = request.form.get("paperless_token", "").strip()
+
+            try:
+                config = load_config()
+                if "PAPERLESS" not in config:
+                    config["PAPERLESS"] = {}
+                config["PAPERLESS"]["ip"] = paperless_ip
+                config["PAPERLESS"]["token"] = paperless_token
+                save_config(config)
+                flash("Paperless-Einstellungen wurden gespeichert.", "success")
+            except Exception as exc:
+                flash(f"Paperless-Einstellungen konnten nicht gespeichert werden: {exc}", "error")
+
+            return redirect(url_for("settings", tab="paperless"))
+
     konten = []
     try:
         konten = fetch_konten_details()
@@ -758,8 +798,20 @@ def settings():
         # Nur still schlucken, Anzeige wird dann leer
         pass
 
+    # Paperless-Einstellungen laden
+    paperless_config = {"ip": "", "token": ""}
+    try:
+        config = load_config()
+        if "PAPERLESS" in config:
+            paperless_config = {
+                "ip": config["PAPERLESS"].get("ip", ""),
+                "token": config["PAPERLESS"].get("token", ""),
+            }
+    except Exception:
+        pass
+
     active_tab = request.args.get("tab")
-    if active_tab not in ("upload", "konten", "keywords"):
+    if active_tab not in ("upload", "konten", "keywords", "paperless"):
         active_tab = "konten" if edit_konto else "upload"
 
     return render_template(
@@ -769,6 +821,7 @@ def settings():
         categories_master=categories_master,
         keyword_mappings=keyword_mappings,
         edit_mapping=edit_mapping,
+        paperless_config=paperless_config,
         active_tab=active_tab,
     )
 

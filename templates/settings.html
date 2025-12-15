@@ -36,6 +36,13 @@
       Kategorien & Schlüsselwörter
     </button>
   </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'paperless' %}active{% endif %}" id="paperless-tab"
+            data-bs-toggle="tab" data-bs-target="#paperless-pane" type="button" role="tab"
+            aria-controls="paperless-pane" aria-selected="{% if active_tab == 'paperless' %}true{% else %}false{% endif %}">
+      Paperless
+    </button>
+  </li>
 </ul>
 
 <div class="tab-content" id="settingsTabsContent">
@@ -313,6 +320,41 @@
         {% else %}
         <p class="text-muted">Noch keine Zuordnungen angelegt.</p>
         {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="tab-pane fade {% if active_tab == 'paperless' %}show active{% endif %}" id="paperless-pane" role="tabpanel" aria-labelledby="paperless-tab">
+    <div class="row g-4">
+      <div class="col-12 col-lg-6">
+        <h2 class="h5 mb-3">Paperless-Einstellungen</h2>
+        <form method="post">
+          <input type="hidden" name="form_type" value="paperless">
+          <div class="mb-3">
+            <label for="paperless_ip" class="form-label">Paperless IP-Adresse</label>
+            <input type="text"
+                   class="form-control"
+                   id="paperless_ip"
+                   name="paperless_ip"
+                   value="{{ paperless_config.ip if paperless_config else '' }}"
+                   placeholder="z.B. http://192.168.1.100:8000 oder https://paperless.example.com"
+                   required>
+            <div class="form-text">Vollständige URL oder IP-Adresse mit Port (z.B. http://192.168.1.100:8000)</div>
+          </div>
+          <div class="mb-3">
+            <label for="paperless_token" class="form-label">API-Token</label>
+            <input type="text"
+                   class="form-control"
+                   id="paperless_token"
+                   name="paperless_token"
+                   value="{{ paperless_config.token if paperless_config else '' }}"
+                   placeholder="Ihr Paperless API-Token"
+                   required>
+            <div class="form-text">Der API-Token aus den Paperless-Einstellungen</div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            Einstellungen speichern
+          </button>
+        </form>
       </div>
     </div>
   </div>
