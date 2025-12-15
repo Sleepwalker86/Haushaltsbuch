@@ -135,6 +135,31 @@ Die App ist i. d. R. unter `http://SERVER-IP:5001` erreichbar.
 
 ---
 
+## Deinstallation (Server)
+
+Um die Anwendung inklusive systemd-Services sauber zu entfernen, gibt es ein eigenes Script `uninstall.sh`.
+
+```bash
+cd /opt/finanzapp
+sudo chmod +x uninstall.sh
+sudo ./uninstall.sh
+```
+
+Das Script erledigt:
+
+1. Stoppen und Deaktivieren von:
+   - `finanzapp.service`
+   - `finanzapp-import.service`
+   - `finanzapp-import.timer`
+2. Entfernen der systemd-Unit-Dateien unter `/etc/systemd/system/`.
+3. `systemctl daemon-reload` und `systemctl reset-failed`.
+4. Löschen des App-Verzeichnisses `/opt/finanzapp`.
+5. Optionales Löschen des Benutzers `finanzapp` (nach Rückfrage).
+
+Die MySQL-Datenbank und ihre Inhalte werden **nicht** gelöscht, damit deine Buchungsdaten erhalten bleiben.
+
+---
+
 ## Lokale Entwicklung
 
 ### 1. Klonen & venv
