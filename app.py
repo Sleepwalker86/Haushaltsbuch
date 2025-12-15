@@ -1,6 +1,8 @@
 from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, flash, url_for
 import math
+import subprocess
+import sys
 
 from db import get_connection
 
@@ -279,6 +281,16 @@ def dashboard():
         total_buchungen=total_buchungen,
         kategorien=kategorien,
     )
+
+
+@app.route("/reload-categories", methods=["POST"])
+def reload_categories():
+    try:
+        subprocess.run([sys.executable, "reload_category.py"], check=True)
+        flash("Kategorien wurden neu geladen.", "success")
+    except subprocess.CalledProcessError as exc:
+        flash(f"Fehler beim Neuladen: {exc}", "error")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/edit/<int:buchung_id>", methods=["GET", "POST"])
