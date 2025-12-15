@@ -50,11 +50,16 @@ fi
 # APP ORDNER & GIT
 # -----------------------------
 if [ -d "$APP_DIR/.git" ]; then
-    echo "🔄 App existiert bereits – aktualisiere mit git pull als ${APP_USER}..."
+    echo "🔄 App-Verzeichnis existiert bereits – aktualisiere Repo als ${APP_USER}..."
+    # Sicherstellen, dass der Besitzer korrekt ist, bevor git als finanzapp läuft
+    chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
+    # Dubious-ownership-Check umgehen, indem wir das Verzeichnis für den User als sicher markieren
+    sudo -u "$APP_USER" git config --global --add safe.directory "$APP_DIR" || true
     sudo -u "$APP_USER" git -C "$APP_DIR" reset --hard
     sudo -u "$APP_USER" git -C "$APP_DIR" pull
 else
-    echo "📁 Erstelle App-Verzeichnis und klone Repo..."
+    echo "📁 App-Verzeichnis existiert noch nicht, klone Repo..."
+    rm -rf "$APP_DIR"
     mkdir -p "$APP_DIR"
     chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
     sudo -u "$APP_USER" git clone "$GIT_REPO" "$APP_DIR"
