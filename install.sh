@@ -20,8 +20,8 @@ fi
 # -----------------------------
 # SYSTEM UPDATE
 # -----------------------------
-#echo "📦 System aktualisieren..."
-#apt update
+echo "📦 Systempakete aktualisieren..."
+apt update
 
 # -----------------------------
 # PAKETE
@@ -30,7 +30,6 @@ echo "📦 Installiere benötigte Pakete..."
 apt install -y \
   python3 \
   python3-pip \
-  python3-mysql.connector \
   mariadb-client \
   ca-certificates \
   curl \

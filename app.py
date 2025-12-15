@@ -204,8 +204,8 @@ def index():
                 cur = conn.cursor()
                 cur.execute(
                     """
-                    INSERT INTO buchungen (datum, art, beschreibung, soll, haben, kategorie, konto)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO buchungen (datum, art, beschreibung, soll, haben, kategorie, konto, manually_edit)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         datum,
@@ -215,6 +215,7 @@ def index():
                         haben,
                         kategorie,
                         "1015504887",
+                        1,
                     ),
                 )
                 conn.commit()
