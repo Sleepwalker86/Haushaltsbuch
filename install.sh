@@ -132,7 +132,7 @@ WorkingDirectory=${APP_DIR}
 ExecStart=${APP_DIR}/venv/bin/python ${APP_DIR}/app.py
 Restart=always
 RestartSec=5
-Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONUNBUFFERED=1 FLASK_DEBUG=0
 
 [Install]
 WantedBy=multi-user.target
