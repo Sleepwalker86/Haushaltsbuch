@@ -6,6 +6,7 @@ ENV/
 __pycache__/
 import/
 imported/
+image/
 
 # Python
 __pycache__/

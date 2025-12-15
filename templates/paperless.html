@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Paperless</h1>
+
+{% if get_flashed_messages() %}
+  <div class="mb-3">
+    {% for msg in get_flashed_messages(with_categories=true) %}
+      {% set cat, text = msg %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+        {{ text }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-12">
+    <h2 class="h5 mb-3">Bild aufnehmen oder hochladen</h2>
+    <p class="text-muted mb-4">
+      Verwenden Sie die Kamera Ihres iPhones, um direkt ein Dokument zu fotografieren, oder wählen Sie ein vorhandenes Bild aus.
+    </p>
+    
+    <form method="post" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label for="image_file" class="form-label">Bild auswählen</label>
+        <input type="file"
+               class="form-control"
+               id="image_file"
+               name="image_file"
+               accept="image/*"
+               capture="environment"
+               required>
+        <div class="form-text">
+          Auf iPhone/iPad: Tippen Sie auf "Foto aufnehmen", um die Kamera zu öffnen.<br>
+          Unterstützte Formate: JPG, PNG, HEIC
+        </div>
+      </div>
+      
+      <button type="submit" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px;">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Bild speichern
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

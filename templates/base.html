@@ -34,6 +34,9 @@
             <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Buchung eintragen</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'paperless' %}active{% endif %}" href="{{ url_for('paperless') }}">Paperless</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'settings' and active_tab == 'upload' %}active{% endif %}"
                href="{{ url_for('settings', tab='upload') }}">Upload</a>
           </li>

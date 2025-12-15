@@ -4,6 +4,7 @@ import math
 import os
 import subprocess
 import sys
+from werkzeug.utils import secure_filename
 
 from db import get_connection
 import json
@@ -824,6 +825,45 @@ def settings():
         paperless_config=paperless_config,
         active_tab=active_tab,
     )
+
+
+@app.route("/paperless", methods=["GET", "POST"])
+def paperless():
+    if request.method == "POST":
+        file = request.files.get("image_file")
+        if not file or file.filename == "":
+            flash("Bitte ein Bild auswählen oder aufnehmen.", "error")
+            return redirect(url_for("paperless"))
+
+        # Erlaubte Bildformate
+        allowed_extensions = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
+        filename = secure_filename(file.filename)
+        file_ext = os.path.splitext(filename)[1].lower()
+        
+        if file_ext not in allowed_extensions:
+            flash("Nur Bilddateien (JPG, PNG, HEIC) sind erlaubt.", "error")
+            return redirect(url_for("paperless"))
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        image_dir = os.path.join(base_dir, "image")
+        os.makedirs(image_dir, exist_ok=True)
+
+        # Eindeutigen Dateinamen erstellen mit Timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_name = os.path.splitext(filename)[0]
+        new_filename = f"{timestamp}_{safe_name}{file_ext}"
+        target_path = os.path.join(image_dir, new_filename)
+
+        try:
+            file.save(target_path)
+            flash(f"Bild '{new_filename}' wurde erfolgreich gespeichert.", "success")
+        except Exception as exc:
+            flash(f"Bild konnte nicht gespeichert werden: {exc}", "error")
+
+        return redirect(url_for("paperless"))
+
+    # GET: Seite anzeigen
+    return render_template("paperless.html", title="Paperless")
 
 
 @app.route("/upload_csv", methods=["POST"])
