@@ -6,6 +6,7 @@ import shutil
 import pandas as pd
 import json
 import csv
+import requests
 
 # =============================
 # CONFIG LADEN
@@ -14,6 +15,7 @@ with open("config.json", "r") as f:
     config = json.load(f)
 
 DB_CONFIG = config["DB_CONFIG"]
+PAPERLESS_CONFIG = config.get("PAPERLESS", {})
 
 # =============================
 # PFADE
@@ -21,8 +23,10 @@ DB_CONFIG = config["DB_CONFIG"]
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMPORT_DIR = os.path.join(BASE_DIR, "import")
 IMPORTED_DIR = os.path.join(BASE_DIR, "imported")
+IMAGE_DIR = os.path.join(BASE_DIR, "image")
 
 os.makedirs(IMPORTED_DIR, exist_ok=True)
+os.makedirs(IMAGE_DIR, exist_ok=True)
 
 # =============================
 # HILFSFUNKTIONEN
@@ -50,6 +54,35 @@ def parse_art(umsatztyp):
     if "geldautomat" in umsatztyp.lower():
         return "Geldautomat"
     return umsatztyp.split()[0] if umsatztyp else ""
+
+def send_image_to_paperless(image_path, paperless_url, paperless_token):
+    """
+    Sendet ein Bild an Paperless-ngx über die API.
+    Gibt True zurück bei Erfolg, False bei Fehler.
+    """
+    try:
+        # URL normalisieren (trailing slash sicherstellen)
+        api_url = paperless_url.rstrip("/") + "/api/documents/post_document/"
+        
+        headers = {
+            "Authorization": f"Token {paperless_token}"
+        }
+        
+        with open(image_path, "rb") as f:
+            files = {"document": f}
+            response = requests.post(api_url, headers=headers, files=files, timeout=30)
+        
+        if response.status_code in (200, 201):
+            return True
+        else:
+            print(f"⚠️  Paperless API Fehler (Status {response.status_code}): {response.text}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"⚠️  Fehler beim Senden an Paperless: {e}")
+        return False
+    except Exception as e:
+        print(f"⚠️  Unerwarteter Fehler beim Senden an Paperless: {e}")
+        return False
 
 # =============================
 # DB VERBINDUNG
@@ -167,3 +200,39 @@ cursor.close()
 db.close()
 
 print("✅ Alle CSVs verarbeitet.")
+
+# =============================
+# PAPERLESS: BILDER SENDEN
+# =============================
+if PAPERLESS_CONFIG.get("ip") and PAPERLESS_CONFIG.get("token"):
+    paperless_url = PAPERLESS_CONFIG["ip"]
+    paperless_token = PAPERLESS_CONFIG["token"]
+    
+    # Unterstützte Bildformate
+    image_extensions = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".pdf"}
+    
+    # Alle Bilder im image-Ordner finden
+    image_files = [
+        f for f in os.listdir(IMAGE_DIR)
+        if os.path.splitext(f.lower())[1] in image_extensions
+    ]
+    
+    if image_files:
+        print(f"\n📸 {len(image_files)} Bild(er) gefunden, sende an Paperless...")
+        
+        for image_file in image_files:
+            image_path = os.path.join(IMAGE_DIR, image_file)
+            print(f"📤 Sende: {image_file}")
+            
+            if send_image_to_paperless(image_path, paperless_url, paperless_token):
+                try:
+                    os.remove(image_path)
+                    print(f"✅ {image_file} erfolgreich gesendet und gelöscht")
+                except Exception as e:
+                    print(f"⚠️  {image_file} gesendet, aber konnte nicht gelöscht werden: {e}")
+            else:
+                print(f"❌ {image_file} konnte nicht gesendet werden, bleibt erhalten")
+    else:
+        print("\n📸 Keine neuen Bilder gefunden")
+else:
+    print("\n📸 Paperless-Konfiguration nicht gefunden, überspringe Bild-Upload")
