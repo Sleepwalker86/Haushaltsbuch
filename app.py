@@ -518,7 +518,7 @@ def settings():
             except Exception as exc:
                 flash(f"Konto konnte nicht angelegt werden: {exc}", "error")
 
-        return redirect(url_for("settings"))
+        return redirect(url_for("settings", tab="konten"))
 
     konten = []
     try:
@@ -549,7 +549,11 @@ def settings():
         except Exception:
             pass
 
-    return render_template("settings.html", konten=konten, edit_konto=edit_konto)
+    active_tab = request.args.get("tab")
+    if active_tab not in ("upload", "konten"):
+        active_tab = "konten" if edit_konto else "upload"
+
+    return render_template("settings.html", konten=konten, edit_konto=edit_konto, active_tab=active_tab)
 
 
 @app.route("/upload_csv", methods=["POST"])
