@@ -70,11 +70,11 @@ CONFIG_FILE="$APP_DIR/config.json"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "⚙️ config.json existiert nicht, erstelle neue..."
     
-    read -p "DB Host [192.168.10.99]: " DB_HOST
-    DB_HOST=${DB_HOST:-192.168.10.99}
+    read -p "DB Host [192.168.10.100]: " DB_HOST
+    DB_HOST=${DB_HOST:-192.168.10.100}
 
-    read -p "DB User [smo]: " DB_USER
-    DB_USER=${DB_USER:-smo}
+    read -p "DB User [db_user]: " DB_USER
+    DB_USER=${DB_USER:-db_user}
 
     read -sp "DB Password [1234]: " DB_PASS
     echo
