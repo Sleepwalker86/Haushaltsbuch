@@ -54,5 +54,5 @@ instance/
 *.sqlite3
 
 # Config (falls sensible Daten enthalten)
-# config.json
+config.json
 
