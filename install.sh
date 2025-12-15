@@ -33,10 +33,6 @@ apt install -y \
   python3 \
   python3-venv \
   python3-pip \
-  python3-flask \
-  python3-mysql.connector \
-  python3-pandas \
-  python3-dateutil \
   mariadb-client \
   ca-certificates \
   curl \
@@ -67,6 +63,22 @@ fi
 # Unterordner erstellen
 mkdir -p "$APP_DIR/import" "$APP_DIR/imported"
 chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
+
+# -----------------------------
+# PYTHON VENV & ABHÄNGIGKEITEN
+# -----------------------------
+echo "🐍 Richte Python-virtualenv im App-Verzeichnis ein..."
+if [ ! -d "$APP_DIR/venv" ]; then
+  sudo -u "$APP_USER" python3 -m venv "$APP_DIR/venv"
+fi
+
+echo "🐍 Installiere Python-Abhängigkeiten in venv..."
+sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install --upgrade pip
+sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install \
+  flask \
+  mysql-connector-python \
+  pandas \
+  python-dateutil
 
 # -----------------------------
 # CONFIG.JSON
@@ -117,7 +129,7 @@ After=network.target mariadb.service
 [Service]
 User=${APP_USER}
 WorkingDirectory=${APP_DIR}
-ExecStart=/usr/bin/python3 ${APP_DIR}/app.py
+ExecStart=${APP_DIR}/venv/bin/python ${APP_DIR}/app.py
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
@@ -137,7 +149,7 @@ After=network.target
 Type=oneshot
 User=${APP_USER}
 WorkingDirectory=${APP_DIR}
-ExecStart=/usr/bin/python3 ${APP_DIR}/import_data.py
+ExecStart=${APP_DIR}/venv/bin/python ${APP_DIR}/import_data.py
 Environment=PYTHONUNBUFFERED=1
 EOF
 
