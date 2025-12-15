@@ -39,8 +39,8 @@ def get_kategorie(text, kat_map):
 db = mysql.connector.connect(**DB_CONFIG)
 cursor = db.cursor()
 
-# Kategorien laden
-cursor.execute("SELECT schluesselwort, kategorie FROM kategorien")
+# Kategorien aus keyword_category-Tabelle laden
+cursor.execute("SELECT schluesselwort, kategorie FROM keyword_category")
 kat_map = dict(cursor.fetchall())
 
 # Alle Buchungen laden

@@ -57,7 +57,8 @@ def parse_art(umsatztyp):
 db = mysql.connector.connect(**DB_CONFIG)
 cursor = db.cursor()
 
-cursor.execute("SELECT schluesselwort, kategorie FROM kategorien")
+# Kategorien aus keyword_category-Tabelle laden
+cursor.execute("SELECT schluesselwort, kategorie FROM keyword_category")
 kat_map = dict(cursor.fetchall())
 
 # =============================

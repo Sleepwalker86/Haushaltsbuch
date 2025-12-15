@@ -24,12 +24,21 @@ DDL_STATEMENTS = [
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     """,
     """
-    CREATE TABLE IF NOT EXISTS kategorien (
+    CREATE TABLE IF NOT EXISTS keyword_category (
       id INT(11) NOT NULL AUTO_INCREMENT,
       schluesselwort VARCHAR(255) NOT NULL,
       kategorie VARCHAR(255) NOT NULL,
       PRIMARY KEY (id),
       UNIQUE KEY schluesselwort (schluesselwort)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS category (
+      id INT(11) NOT NULL AUTO_INCREMENT,
+      name VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uniq_category_name (name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """,
     """

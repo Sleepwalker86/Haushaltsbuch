@@ -14,7 +14,8 @@ app.secret_key = "change-me-please"  # für Flash-Messages
 def fetch_categories():
     with get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT DISTINCT kategorie FROM kategorien ORDER BY kategorie")
+        # Dropdown-Kategorien aus der neuen Stammtabelle `category`
+        cur.execute("SELECT name FROM category ORDER BY name")
         rows = cur.fetchall()
         cur.close()
         kategorien = [row[0] for row in rows]
@@ -22,6 +23,31 @@ def fetch_categories():
         if "Sonstiges" not in kategorien:
             kategorien.append("Sonstiges")
         return kategorien
+
+
+def fetch_category_master():
+    """Liefert alle Kategorien aus der Stammtabelle `category`."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, name FROM category ORDER BY name")
+        rows = cur.fetchall()
+        cur.close()
+        return [{"id": r[0], "name": r[1]} for r in rows]
+
+
+def fetch_keyword_mappings():
+    """Liefert alle Zuordnungen aus `keyword_category`."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, schluesselwort, kategorie FROM keyword_category ORDER BY kategorie, schluesselwort"
+        )
+        rows = cur.fetchall()
+        cur.close()
+        return [
+            {"id": r[0], "schluesselwort": r[1], "kategorie": r[2]}
+            for r in rows
+        ]
 
 
 def fetch_category_summary(year=None, month=None):
@@ -488,42 +514,191 @@ def delete_buchung(buchung_id):
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
     if request.method == "POST":
-        konto_id = request.form.get("konto_id")
-        name = request.form.get("name", "").strip()
-        beschreibung = request.form.get("beschreibung", "").strip()
-        iban = request.form.get("iban", "").strip()
+        form_type = request.form.get("form_type", "konto")
 
-        if not name:
-            flash("Name des Kontos ist erforderlich.", "error")
-        else:
-            try:
-                with get_connection() as conn:
-                    cur = conn.cursor()
-                    if konto_id:
+        # ---------------------------------
+        # Konto-Formular
+        # ---------------------------------
+        if form_type == "konto":
+            konto_id = request.form.get("konto_id")
+            name = request.form.get("name", "").strip()
+            beschreibung = request.form.get("beschreibung", "").strip()
+            iban = request.form.get("iban", "").strip()
+
+            if not name:
+                flash("Name des Kontos ist erforderlich.", "error")
+            else:
+                try:
+                    with get_connection() as conn:
+                        cur = conn.cursor()
+                        if konto_id:
+                            cur.execute(
+                                """
+                                UPDATE konten
+                                SET name=%s, beschreibung=%s, iban=%s
+                                WHERE id=%s
+                                """,
+                                (name, beschreibung, iban, konto_id),
+                            )
+                            flash("Konto wurde aktualisiert.", "success")
+                        else:
+                            cur.execute(
+                                """
+                                INSERT INTO konten (name, beschreibung, iban)
+                                VALUES (%s, %s, %s)
+                                """,
+                                (name, beschreibung, iban),
+                            )
+                            flash("Konto wurde angelegt.", "success")
+                        conn.commit()
+                        cur.close()
+                except Exception as exc:
+                    flash(f"Konto konnte nicht angelegt werden: {exc}", "error")
+
+            return redirect(url_for("settings", tab="konten"))
+
+        # ---------------------------------
+        # Konto löschen
+        # ---------------------------------
+        elif form_type == "konto_delete":
+            konto_id = request.form.get("konto_id")
+            if not konto_id:
+                flash("Konto konnte nicht gelöscht werden: ID fehlt.", "error")
+            else:
+                try:
+                    with get_connection() as conn:
+                        cur = conn.cursor()
+                        cur.execute("DELETE FROM konten WHERE id=%s", (konto_id,))
+                        conn.commit()
+                        cur.close()
+                    flash("Konto wurde gelöscht.", "success")
+                except Exception as exc:
+                    flash(f"Konto konnte nicht gelöscht werden: {exc}", "error")
+
+            return redirect(url_for("settings", tab="konten"))
+
+        # ---------------------------------
+        # Keyword-Category-Formular
+        # ---------------------------------
+        elif form_type == "keyword":
+            mapping_id = request.form.get("mapping_id")
+            keyword = request.form.get("keyword", "").strip()
+            category_name = request.form.get("category_name", "").strip()
+
+            if not keyword or not category_name:
+                flash("Kategorie und Schlüsselwort sind erforderlich.", "error")
+            else:
+                try:
+                    with get_connection() as conn:
+                        cur = conn.cursor()
+                        if mapping_id:
+                            # Update bestehender Zuordnung
+                            cur.execute(
+                                """
+                                UPDATE keyword_category
+                                SET schluesselwort=%s, kategorie=%s
+                                WHERE id=%s
+                                """,
+                                (keyword, category_name, mapping_id),
+                            )
+                            flash("Zuordnung wurde aktualisiert.", "success")
+                        else:
+                            # Neue Zuordnung anlegen
+                            cur.execute(
+                                """
+                                INSERT INTO keyword_category (schluesselwort, kategorie)
+                                VALUES (%s, %s)
+                                """,
+                                (keyword, category_name),
+                            )
+                            flash("Zuordnung wurde gespeichert.", "success")
+                        conn.commit()
+                        cur.close()
+                except Exception as exc:
+                    flash(f"Zuordnung konnte nicht gespeichert werden: {exc}", "error")
+
+            return redirect(url_for("settings", tab="keywords"))
+
+        # ---------------------------------
+        # Kategorie-Stammdaten (Tabelle category)
+        # ---------------------------------
+        elif form_type == "category_master":
+            category_name = request.form.get("category_name", "").strip()
+            if not category_name:
+                flash("Name der Kategorie ist erforderlich.", "error")
+            else:
+                try:
+                    with get_connection() as conn:
+                        cur = conn.cursor()
                         cur.execute(
                             """
-                            UPDATE konten
-                            SET name=%s, beschreibung=%s, iban=%s
-                            WHERE id=%s
+                            INSERT IGNORE INTO category (name)
+                            VALUES (%s)
                             """,
-                            (name, beschreibung, iban, konto_id),
+                            (category_name,),
                         )
-                        flash("Konto wurde aktualisiert.", "success")
-                    else:
+                        conn.commit()
+                        cur.close()
+                    flash("Kategorie wurde gespeichert.", "success")
+                except Exception as exc:
+                    flash(f"Kategorie konnte nicht gespeichert werden: {exc}", "error")
+
+            return redirect(url_for("settings", tab="keywords"))
+
+        # ---------------------------------
+        # Keyword-Category-Löschen
+        # ---------------------------------
+        elif form_type == "keyword_delete":
+            mapping_id = request.form.get("mapping_id")
+            if not mapping_id:
+                flash("Zuordnung konnte nicht gelöscht werden: ID fehlt.", "error")
+            else:
+                try:
+                    with get_connection() as conn:
+                        cur = conn.cursor()
+                        cur.execute(
+                            "DELETE FROM keyword_category WHERE id=%s",
+                            (mapping_id,),
+                        )
+                        conn.commit()
+                        cur.close()
+                    flash("Zuordnung wurde gelöscht.", "success")
+                except Exception as exc:
+                    flash(f"Zuordnung konnte nicht gelöscht werden: {exc}", "error")
+
+            return redirect(url_for("settings", tab="keywords"))
+
+        # ---------------------------------
+        # Kategorie-Stammdaten-Löschen
+        # ---------------------------------
+        elif form_type == "category_delete":
+            category_id = request.form.get("category_id")
+            if not category_id:
+                flash("Kategorie konnte nicht gelöscht werden: ID fehlt.", "error")
+            else:
+                try:
+                    with get_connection() as conn:
+                        cur = conn.cursor()
+                        # Zuerst alle zugehörigen Zuordnungen in keyword_category löschen
                         cur.execute(
                             """
-                            INSERT INTO konten (name, beschreibung, iban)
-                            VALUES (%s, %s, %s)
+                            DELETE FROM keyword_category
+                            WHERE kategorie = (SELECT name FROM category WHERE id=%s)
                             """,
-                            (name, beschreibung, iban),
+                            (category_id,),
                         )
-                        flash("Konto wurde angelegt.", "success")
-                    conn.commit()
-                    cur.close()
-            except Exception as exc:
-                flash(f"Konto konnte nicht angelegt werden: {exc}", "error")
+                        # Dann die Kategorie selbst löschen
+                        cur.execute(
+                            "DELETE FROM category WHERE id=%s",
+                            (category_id,),
+                        )
+                        conn.commit()
+                        cur.close()
+                    flash("Kategorie wurde gelöscht.", "success")
+                except Exception as exc:
+                    flash(f"Kategorie konnte nicht gelöscht werden: {exc}", "error")
 
-        return redirect(url_for("settings", tab="konten"))
+            return redirect(url_for("settings", tab="keywords"))
 
     konten = []
     try:
@@ -554,11 +729,48 @@ def settings():
         except Exception:
             pass
 
+    # Daten für Keyword-Category-Tab
+    categories_master = []
+    keyword_mappings = []
+    edit_mapping = None
+    try:
+        categories_master = fetch_category_master()
+        keyword_mappings = fetch_keyword_mappings()
+
+        # Optional einzelne Zuordnung zum Bearbeiten laden
+        mapping_id = request.args.get("mapping_id")
+        if mapping_id:
+            with get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT id, schluesselwort, kategorie FROM keyword_category WHERE id=%s",
+                    (mapping_id,),
+                )
+                row = cur.fetchone()
+                cur.close()
+            if row:
+                edit_mapping = {
+                    "id": row[0],
+                    "schluesselwort": row[1] or "",
+                    "kategorie": row[2] or "",
+                }
+    except Exception:
+        # Nur still schlucken, Anzeige wird dann leer
+        pass
+
     active_tab = request.args.get("tab")
-    if active_tab not in ("upload", "konten"):
+    if active_tab not in ("upload", "konten", "keywords"):
         active_tab = "konten" if edit_konto else "upload"
 
-    return render_template("settings.html", konten=konten, edit_konto=edit_konto, active_tab=active_tab)
+    return render_template(
+        "settings.html",
+        konten=konten,
+        edit_konto=edit_konto,
+        categories_master=categories_master,
+        keyword_mappings=keyword_mappings,
+        edit_mapping=edit_mapping,
+        active_tab=active_tab,
+    )
 
 
 @app.route("/upload_csv", methods=["POST"])

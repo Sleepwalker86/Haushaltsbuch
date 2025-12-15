@@ -35,7 +35,7 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
   - Datum
   - Typ (Ausgaben / Einnahmen)
   - Konto (Dropdown aus `konten`-Tabelle, Pflichtfeld)
-  - Kategorie (Dropdown aus `kategorien`-Tabelle)
+  - Kategorie (Dropdown aus `keyword_category`-Tabelle)
   - Unterkategorie (`kategorie2`, Freitext)
   - Betrag (Komma/Punkt als Dezimaltrenner)
   - Beschreibung
