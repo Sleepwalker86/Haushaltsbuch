@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Einstellungen</h1>
+
+{% if get_flashed_messages() %}
+  <div class="mb-3">
+    {% for msg in get_flashed_messages(with_categories=true) %}
+      {% set cat, text = msg %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+        {{ text }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-12 col-lg-5">
+    <h2 class="h5 mb-3">Neues Konto anlegen</h2>
+    <form method="post">
+      <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" class="form-control" id="name" name="name" placeholder="z.B. Girokonto ING" required>
+      </div>
+      <div class="mb-3">
+        <label for="beschreibung" class="form-label">Beschreibung</label>
+        <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2" placeholder="z.B. Hauptkonto Haushalt"></textarea>
+      </div>
+      <div class="mb-3">
+        <label for="iban" class="form-label">IBAN</label>
+        <input type="text" class="form-control" id="iban" name="iban" placeholder="z.B. DE00 1234 5678 9000 0000 00">
+      </div>
+      <button type="submit" class="btn btn-primary">Konto speichern</button>
+    </form>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <h2 class="h5 mb-3">Vorhandene Konten</h2>
+    {% if konten %}
+    <div class="table-responsive">
+      <table class="table table-sm table-striped align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 25%;">Name</th>
+            <th style="width: 35%;">Beschreibung</th>
+            <th style="width: 40%;">IBAN</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for k in konten %}
+          <tr>
+            <td>{{ k.name }}</td>
+            <td>{{ k.beschreibung }}</td>
+            <td>{{ k.iban }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted">Noch keine Konten angelegt.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+
+

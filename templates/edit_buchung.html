@@ -17,7 +17,7 @@
   </div>
 {% endif %}
 
-<form method="post">
+<form method="post" id="edit-form">
   <div class="mb-3">
     <label for="datum" class="form-label">Datum</label>
     <input type="date" class="form-control" id="datum" name="datum" value="{{ buchung.datum.strftime('%Y-%m-%d') if buchung.datum else '' }}" required>
@@ -54,10 +54,24 @@
   </div>
 
   <div class="mb-3">
+    <label for="kategorie2" class="form-label">Unterkategorie</label>
+    <input type="text" class="form-control" id="kategorie2" name="kategorie2"
+           value="{{ buchung.kategorie2 or '' }}" placeholder="z.B. Lebensmittel, Tanken">
+  </div>
+
+  <div class="mb-3">
     <label for="beschreibung" class="form-label">Beschreibung</label>
     <textarea class="form-control" id="beschreibung" name="beschreibung" rows="3" placeholder="z.B. Barzahlung Supermarkt" required>{{ buchung.beschreibung }}</textarea>
   </div>
-
-  <button type="submit" class="btn btn-primary">Speichern</button>
 </form>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+  <button type="submit" class="btn btn-primary" form="edit-form">Speichern</button>
+
+  <form method="post"
+        action="{{ url_for('delete_buchung', buchung_id=buchung.id, year=request.args.get('year'), month=request.args.get('month'), page=request.args.get('page', 1)) }}"
+        onsubmit="return confirm('Buchung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
+    <button type="submit" class="btn btn-outline-danger">Löschen</button>
+  </form>
+</div>
 {% endblock %}

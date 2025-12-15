@@ -109,7 +109,39 @@ def fetch_einzahlungen_by_iban(year=None, month=None):
         ]
 
 
-def fetch_buchungen(year=None, month=None, page=1, per_page=30):
+def fetch_konten():
+    """Liefert alle unterschiedlichen Konten für Filter-Dropdown."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT DISTINCT konto FROM buchungen WHERE konto IS NOT NULL AND konto != '' ORDER BY konto"
+        )
+        rows = cur.fetchall()
+        cur.close()
+        return [r[0] for r in rows]
+
+
+def fetch_konten_details():
+    """Liefert Konten aus der Konten-Tabelle (für Einstellungen)."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, name, beschreibung, iban FROM konten ORDER BY name"
+        )
+        rows = cur.fetchall()
+        cur.close()
+        return [
+            {
+                "id": r[0],
+                "name": r[1] or "",
+                "beschreibung": r[2] or "",
+                "iban": r[3] or "",
+            }
+            for r in rows
+        ]
+
+
+def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kategorie2_filter=None):
     where = []
     params = []
     if year:
@@ -118,6 +150,12 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30):
     if month:
         where.append("MONTH(datum) = %s")
         params.append(month)
+    if konto:
+        where.append("konto = %s")
+        params.append(konto)
+    if kategorie2_filter:
+        where.append("kategorie2 LIKE %s")
+        params.append(f"%{kategorie2_filter}%")
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     
     # Gesamtanzahl
@@ -131,7 +169,7 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30):
     # Buchungen mit Pagination
     offset = (page - 1) * per_page
     sql = f"""
-        SELECT id, datum, art, beschreibung, soll, haben, kategorie, konto
+        SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto
         FROM buchungen
         {where_sql}
         ORDER BY datum DESC, id DESC
@@ -152,10 +190,12 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30):
                 "soll": float(r[4] or 0),
                 "haben": float(r[5] or 0),
                 "kategorie": r[6] or "",
-                "konto": r[7] or "",
+                "kategorie2": r[7] or "",
+                "konto": r[8] or "",
             }
             for r in rows
         ]
+
     
     total_pages = math.ceil(total / per_page) if total > 0 else 1
     return buchungen, total, total_pages
@@ -169,10 +209,12 @@ def index():
             betrag_raw = request.form.get("betrag", "").strip()
             beschreibung = request.form.get("beschreibung", "").strip()
             kategorie = request.form.get("kategorie", "").strip()
+            kategorie2 = request.form.get("kategorie2", "").strip()
             typ = request.form.get("typ", "Ausgaben").strip()
+            konto = request.form.get("konto", "").strip()
 
-            if not datum_raw or not betrag_raw or not kategorie:
-                raise ValueError("Datum, Betrag und Kategorie sind erforderlich.")
+            if not datum_raw or not betrag_raw or not kategorie or not konto:
+                raise ValueError("Datum, Betrag, Kategorie und Konto sind erforderlich.")
 
             # Betrag parsen (unterstützt Komma und Punkt als Dezimaltrenner)
             betrag_str = betrag_raw.strip()
@@ -204,8 +246,8 @@ def index():
                 cur = conn.cursor()
                 cur.execute(
                     """
-                    INSERT INTO buchungen (datum, art, beschreibung, soll, haben, kategorie, konto, manually_edit)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO buchungen (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, manually_edit)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         datum,
@@ -214,7 +256,8 @@ def index():
                         soll,
                         haben,
                         kategorie,
-                        "1015504887",
+                        kategorie2,
+                        konto,
                         1,
                     ),
                 )
@@ -227,7 +270,12 @@ def index():
             flash(f"Fehler: {exc}", "error")
 
     kategorien = fetch_categories()
-    return render_template("form.html", kategorien=kategorien)
+    konten = []
+    try:
+        konten = fetch_konten_details()
+    except Exception as exc:
+        flash(f"Konten konnten nicht geladen werden (Tabelle 'konten' vorhanden?): {exc}", "error")
+    return render_template("form.html", kategorien=kategorien, konten=konten)
 
 
 @app.route("/dashboard")
@@ -239,6 +287,8 @@ def dashboard():
     
     year = request.args.get("year") or default_year
     month = request.args.get("month") or default_month
+    konto = request.args.get("konto") or ""
+    kategorie2_filter = request.args.get("kategorie2_filter") or ""
     page = int(request.args.get("page", 1))
     
     if year and not year.isdigit():
@@ -250,7 +300,9 @@ def dashboard():
 
     cat_summary = fetch_category_summary(year, month)
     time_series = fetch_time_series(year, month)
-    buchungen, total_buchungen, total_pages = fetch_buchungen(year, month, page)
+    buchungen, total_buchungen, total_pages = fetch_buchungen(
+        year, month, page, konto=konto or None, kategorie2_filter=kategorie2_filter or None
+    )
     einzahlungen = fetch_einzahlungen_by_iban(year, month)
 
     labels_cat = [c["kategorie"] for c in cat_summary]
@@ -264,6 +316,11 @@ def dashboard():
     values_iban = [e["betrag"] for e in einzahlungen]
 
     kategorien = fetch_categories()
+    konten = []
+    try:
+        konten = fetch_konten_details()
+    except Exception as exc:
+        flash(f"Konten für Filter konnten nicht geladen werden (Tabelle 'konten' vorhanden?): {exc}", "error")
 
     return render_template(
         "dashboard.html",
@@ -281,6 +338,9 @@ def dashboard():
         total_pages=total_pages,
         total_buchungen=total_buchungen,
         kategorien=kategorien,
+        konten=konten,
+        konto=konto,
+        kategorie2_filter=kategorie2_filter,
     )
 
 
@@ -311,6 +371,7 @@ def edit_buchung(buchung_id):
             art = request.form.get("art", "").strip()
             beschreibung = request.form.get("beschreibung", "").strip()
             kategorie = request.form.get("kategorie", "").strip()
+            kategorie2 = request.form.get("kategorie2", "").strip()
             typ = request.form.get("typ", "Ausgaben").strip()
             betrag_raw = request.form.get("betrag", "").strip()
 
@@ -348,11 +409,17 @@ def edit_buchung(buchung_id):
                 cur.execute(
                     """
                     UPDATE buchungen
-                    SET datum=%s, art=%s, beschreibung=%s, soll=%s, haben=%s, kategorie=%s, 
-                    manually_edit=1
+                    SET datum=%s,
+                        art=%s,
+                        beschreibung=%s,
+                        soll=%s,
+                        haben=%s,
+                        kategorie=%s,
+                        kategorie2=%s,
+                        manually_edit=1
                     WHERE id=%s
                     """,
-                    (datum, art, beschreibung, soll, haben, kategorie, buchung_id),
+                    (datum, art, beschreibung, soll, haben, kategorie, kategorie2, buchung_id),
                 )
                 conn.commit()
                 cur.close()
@@ -366,7 +433,7 @@ def edit_buchung(buchung_id):
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, datum, art, beschreibung, soll, haben, kategorie, konto FROM buchungen WHERE id=%s",
+            "SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto FROM buchungen WHERE id=%s",
             (buchung_id,),
         )
         row = cur.fetchone()
@@ -383,11 +450,70 @@ def edit_buchung(buchung_id):
             "soll": float(row[4] or 0),
             "haben": float(row[5] or 0),
             "kategorie": row[6] or "",
-            "konto": row[7] or "",
+            "kategorie2": row[7] or "",
+            "konto": row[8] or "",
         }
 
     kategorien = fetch_categories()
     return render_template("edit_buchung.html", buchung=buchung, kategorien=kategorien)
+
+
+@app.route("/delete/<int:buchung_id>", methods=["POST"])
+def delete_buchung(buchung_id):
+    try:
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM buchungen WHERE id=%s", (buchung_id,))
+            conn.commit()
+            cur.close()
+        flash("Buchung wurde gelöscht.", "success")
+    except Exception as exc:
+        flash(f"Buchung konnte nicht gelöscht werden: {exc}", "error")
+
+    return redirect(
+        url_for(
+            "dashboard",
+            year=request.args.get("year"),
+            month=request.args.get("month"),
+            page=request.args.get("page", 1),
+        )
+    )
+
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        beschreibung = request.form.get("beschreibung", "").strip()
+        iban = request.form.get("iban", "").strip()
+
+        if not name:
+            flash("Name des Kontos ist erforderlich.", "error")
+        else:
+            try:
+                with get_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute(
+                        """
+                        INSERT INTO konten (name, beschreibung, iban)
+                        VALUES (%s, %s, %s)
+                        """,
+                        (name, beschreibung, iban),
+                    )
+                    conn.commit()
+                    cur.close()
+                flash("Konto wurde angelegt.", "success")
+            except Exception as exc:
+                flash(f"Konto konnte nicht angelegt werden: {exc}", "error")
+
+        return redirect(url_for("settings"))
+
+    konten = []
+    try:
+        konten = fetch_konten_details()
+    except Exception as exc:
+        flash(f"Konten konnten nicht geladen werden (Tabelle vorhanden?): {exc}", "error")
+
+    return render_template("settings.html", konten=konten)
 
 
 if __name__ == "__main__":

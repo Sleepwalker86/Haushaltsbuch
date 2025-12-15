@@ -2,24 +2,47 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="mb-0">Dashboard</h1>
-  <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Zur Startseite</a>
 </div>
 
-<form method="get" class="row g-3 mb-4 align-items-end">
-  <div class="col-3 col-md-3 col-sm-2 col-xs-1">
-    <label for="year" class="form-label">Jahr</label>
-    <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
-  </div>
-  <div class="col-3 col-md-3 col-sm-2">
-    <label for="month" class="form-label">Monat</label>
-    <input type="number" class="form-control" id="month" name="month" placeholder="1-12" value="{{ month }}" min="1" max="12">
-  </div>
-  <div class="col-12 col-md-6 col-sm-8">
-    <button type="submit" class="btn btn-primary me-2">Filtern</button>
-    <a href="{{ url_for('dashboard') }}" class="text-muted text-decoration-none">Filter löschen</a>
-  </div>
-  <input type="hidden" name="page" value="1">
-</form>
+<div class="mb-3">
+  <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+    Filter ein-/ausklappen
+  </button>
+</div>
+
+<div class="collapse d-md-block" id="filterCollapse">
+  <form method="get" class="row g-3 mb-4 align-items-end">
+    <div class="col-6 col-md-3">
+      <label for="year" class="form-label">Jahr</label>
+      <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
+    </div>
+    <div class="col-6 col-md-3">
+      <label for="month" class="form-label">Monat</label>
+      <input type="number" class="form-control" id="month" name="month" placeholder="1-12" value="{{ month }}" min="1" max="12">
+    </div>
+    <div class="col-12 col-md-3">
+      <label for="konto" class="form-label">Konto</label>
+      <select class="form-select" id="konto" name="konto">
+        <option value="">Alle Konten</option>
+        {% for k in konten %}
+          <option value="{{ k.iban }}" {% if k.iban == konto %}selected{% endif %}>
+            {{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3">
+      <label for="kategorie2_filter" class="form-label">Unterkategorie enthält</label>
+      <input type="text" class="form-control" id="kategorie2_filter" name="kategorie2_filter"
+             value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary me-2">Filtern</button>
+      <a href="{{ url_for('dashboard') }}" class="text-muted text-decoration-none">Filter löschen</a>
+    </div>
+    <input type="hidden" name="page" value="1">
+  </form>
+</div>
 
 <div class="row g-4 mb-4">
   <div class="col-12 col-md-4 col-lg-4 col-xl-4 col-xxl-4">
@@ -44,11 +67,12 @@
       <thead class="table-light">
         <tr>
           <th style="width: 10%;">Datum</th>
-          <th class="d-none d-sm-table-cell" style="width: 10%;">Art</th>
-          <th style="width: 25%;">Beschreibung</th>
+          <th class="d-none d-lg-table-cell" style="width: 10%;">Art</th>
+          <th style="width: 20%;">Beschreibung</th>
           <th class="text-end" style="width: 15%;">Soll</th>
           <th class="text-end" style="width: 15%;">Haben</th>
           <th style="width: 15%;">Kategorie</th>
+          <th style="width: 15%;">Kategorie 2</th>
           <th class="text-center" style="width: 10%;">Aktion</th>
         </tr>
       </thead>
@@ -56,7 +80,7 @@
         {% for b in buchungen %}
         <tr>
           <td>{{ b.datum.strftime('%d.%m.%Y') if b.datum else '' }}</td>
-          <td class="d-none d-sm-table-cell">{{ b.art }}</td>
+          <td class="d-none d-lg-table-cell">{{ b.art }}</td>
           <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ b.beschreibung }}">{{ b.beschreibung }}</td>
           <td class="text-end {% if b.soll > 0 %}text-danger{% else %}text-muted{% endif %}">
             {% if b.soll > 0 %}{{ "%.2f"|format(b.soll) }} €{% else %}-{% endif %}
@@ -65,6 +89,10 @@
             {% if b.haben > 0 %}{{ "%.2f"|format(b.haben) }} €{% else %}-{% endif %}
           </td>
           <td>{{ b.kategorie }}</td>
+          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+              title="{{ b.kategorie2 }}">
+            {{ b.kategorie2 if b.kategorie2 else '-' }}
+          </td>
           <td class="text-center">
             <a href="{{ url_for('edit_buchung', buchung_id=b.id, year=year, month=month, page=current_page) }}" 
                class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
@@ -170,7 +198,7 @@
     options: {
       responsive: true,
       plugins: { 
-        legend: { position: 'top' },
+        legend: { position: 'bottom' },
         tooltip: {
           callbacks: {
             label: function(context) {
