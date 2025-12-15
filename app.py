@@ -292,6 +292,15 @@ def reload_categories():
         flash(f"Fehler beim Neuladen: {exc}", "error")
     return redirect(url_for("dashboard"))
 
+@app.route("/import_data", methods=["POST"])
+def import_data():
+    try:
+        subprocess.run([sys.executable, "import_data.py"], check=True)
+        flash("Daten wurden neu eingelesen.", "success")
+    except subprocess.CalledProcessError as exc:
+        flash(f"Fehler beim lesen der Daten: {exc}", "error")
+    return redirect(url_for("dashboard"))
+
 
 @app.route("/edit/<int:buchung_id>", methods=["GET", "POST"])
 def edit_buchung(buchung_id):

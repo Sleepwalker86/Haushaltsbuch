@@ -1,15 +1,19 @@
 import mysql.connector
 import re
+import json
+
+# =============================
+# CONFIG LADEN
+# =============================
+with open("config.json", "r") as f:
+    config = json.load(f)
+
+DB_CONFIG = config["DB_CONFIG"]
 
 # =============================
 # DB KONFIGURATION
 # =============================
-DB_CONFIG = {
-    "host": "192.168.10.99",
-    "user": "smo",
-    "password": "1234",
-    "database": "Haushaltsbuch"
-}
+DB_CONFIG = config["DB_CONFIG"]
 
 # =============================
 # HILFSFUNKTIONEN
