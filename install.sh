@@ -31,7 +31,12 @@ apt update
 echo "📦 Installiere benötigte Pakete..."
 apt install -y \
   python3 \
+  python3-venv \
   python3-pip \
+  python3-flask \
+  python3-mysql.connector \
+  python3-pandas \
+  python3-dateutil \
   mariadb-client \
   ca-certificates \
   curl \
@@ -99,13 +104,6 @@ EOF
 else
     echo "✅ config.json existiert bereits, überspringe Erstellung."
 fi
-
-# -----------------------------
-# PYTHON ABHÄNGIGKEITEN
-# -----------------------------
-echo "🐍 Installiere Python-Abhängigkeiten global..."
-pip3 install --upgrade pip
-pip3 install flask mysql-connector-python pandas python-dateutil
 
 # -----------------------------
 # SYSTEMD SERVICE
