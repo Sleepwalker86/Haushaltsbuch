@@ -113,6 +113,11 @@ EOF
 
     chown "$APP_USER":"$APP_USER" "$CONFIG_FILE"
     chmod 600 "$CONFIG_FILE"
+
+    echo "🗄️  Initialisiere Datenbanktabellen..."
+    sudo -u "$APP_USER" "$APP_DIR/venv/bin/python" "$APP_DIR/init_db.py" || {
+      echo "❌ Konnte Datenbanktabellen nicht anlegen. Bitte init_db.py manuell prüfen."
+    }
 else
     echo "✅ config.json existiert bereits, überspringe Erstellung."
 fi

@@ -1,4 +1,4 @@
-# Haushaltsbuch – PDF/CSV zu Dashboard
+# Haushaltsbuch – CSV zu Dashboard
 
 ## Übersicht
 
