@@ -1,72 +1,70 @@
 {% extends "base.html" %}
 {% block content %}
-
-<div style="margin-top:16px; display:flex; align-items:center; gap:16px; justify-content:space-between;">
-  <h1 style="margin:0;">Dashboard</h1>
-  <a href="{{ url_for('index') }}">
-    <button type="button">Zur Startseite</button>
-  </a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="mb-0">Dashboard</h1>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Zur Startseite</a>
 </div>
 
-<form method="get" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:16px;">
-  <div style="display:grid; gap:6px; min-width:120px; flex:1 1 140px;">
-    <label for="year">Jahr</label>
-    <input type="number" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
+<form method="get" class="row g-3 mb-4 align-items-end">
+  <div class="col-md-3">
+    <label for="year" class="form-label">Jahr</label>
+    <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
   </div>
-  <div style="display:grid; gap:6px; min-width:120px; flex:1 1 140px;">
-    <label for="month">Monat</label>
-    <input type="number" id="month" name="month" placeholder="1-12" value="{{ month }}" min="1" max="12">
+  <div class="col-md-3">
+    <label for="month" class="form-label">Monat</label>
+    <input type="number" class="form-control" id="month" name="month" placeholder="1-12" value="{{ month }}" min="1" max="12">
   </div>
-  <div style="display:flex; gap:8px; flex-wrap:wrap;">
-    <button type="submit">Filter anwenden</button>
-    <a href="{{ url_for('dashboard') }}" class="muted" style="align-self:center;">Filter zurücksetzen</a>
+  <div class="col-md-6">
+    <button type="submit" class="btn btn-primary me-2">Filter anwenden</button>
+    <a href="{{ url_for('dashboard') }}" class="text-muted text-decoration-none">Filter zurücksetzen</a>
   </div>
   <input type="hidden" name="page" value="1">
 </form>
 
-<div style="display:grid; gap:18px;">
-  <div>
-    <h3>Kategorien (Einnahmen/Ausgaben)</h3>
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <h3 class="h5 mb-3">Kategorien (Einnahmen/Ausgaben)</h3>
     <canvas id="catChart" height="200"></canvas>
   </div>
-  <div>
-    <h3>Ausgaben (Kategorien)</h3>
+  <div class="col-md-6">
+    <h3 class="h5 mb-3">Ausgaben (Kategorien)</h3>
     <canvas id="pieChart" height="200"></canvas>
   </div>
 </div>
 
-<div style="margin-top:32px;">
-  <h3>Buchungen ({{ total_buchungen }} Einträge)</h3>
+<div class="mt-5">
+  <h3 class="h5 mb-3">Buchungen ({{ total_buchungen }} Einträge)</h3>
   {% if buchungen %}
-  <div style="overflow-x:auto;">
-    <table style="width:100%; border-collapse:collapse; margin-top:12px;">
-      <thead>
-        <tr style="background:#f3f4f6; border-bottom:2px solid #e5e7eb;">
-          <th style="padding:10px; text-align:left; font-weight:600;">Datum</th>
-          <th style="padding:10px; text-align:left; font-weight:600;">Art</th>
-          <th style="padding:10px; text-align:left; font-weight:600;">Beschreibung</th>
-          <th style="padding:10px; text-align:right; font-weight:600;">Soll</th>
-          <th style="padding:10px; text-align:right; font-weight:600;">Haben</th>
-          <th style="padding:10px; text-align:left; font-weight:600;">Kategorie</th>
-          <th style="padding:10px; text-align:center; font-weight:600;">Aktion</th>
+  <div class="table-responsive">
+    <table class="table table-striped table-hover">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 10%;">Datum</th>
+          <th style="width: 10%;">Art</th>
+          <th style="width: 25%;">Beschreibung</th>
+          <th class="text-end" style="width: 15%;">Soll</th>
+          <th class="text-end" style="width: 15%;">Haben</th>
+          <th style="width: 15%;">Kategorie</th>
+          <th class="text-center" style="width: 10%;">Aktion</th>
         </tr>
       </thead>
       <tbody>
         {% for b in buchungen %}
-        <tr style="border-bottom:1px solid #e5e7eb;">
-          <td style="padding:10px;">{{ b.datum.strftime('%d.%m.%Y') if b.datum else '' }}</td>
-          <td style="padding:10px;">{{ b.art }}</td>
-          <td style="padding:10px;">{{ b.beschreibung }}</td>
-          <td style="padding:10px; text-align:right; color:{% if b.soll > 0 %}#ef4444{% else %}#6b7280{% endif %};">
+        <tr>
+          <td>{{ b.datum.strftime('%d.%m.%Y') if b.datum else '' }}</td>
+          <td>{{ b.art }}</td>
+          <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ b.beschreibung }}">{{ b.beschreibung }}</td>
+          <td class="text-end {% if b.soll > 0 %}text-danger{% else %}text-muted{% endif %}">
             {% if b.soll > 0 %}{{ "%.2f"|format(b.soll) }} €{% else %}-{% endif %}
           </td>
-          <td style="padding:10px; text-align:right; color:{% if b.haben > 0 %}#22c55e{% else %}#6b7280{% endif %};">
+          <td class="text-end {% if b.haben > 0 %}text-success{% else %}text-muted{% endif %}">
             {% if b.haben > 0 %}{{ "%.2f"|format(b.haben) }} €{% else %}-{% endif %}
           </td>
-          <td style="padding:10px;">{{ b.kategorie }}</td>
-          <td style="padding:10px; text-align:center;">
+          <td>{{ b.kategorie }}</td>
+          <td class="text-center">
             <a href="{{ url_for('edit_buchung', buchung_id=b.id, year=year, month=month, page=current_page) }}" 
-               style="display:inline-flex; align-items:center; justify-content:center; padding:6px; background:#3b82f6; color:white; text-decoration:none; border-radius:4px; width:28px; height:28px;"
+               class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
+               style="width: 28px; height: 28px; padding: 0;"
                title="Bearbeiten">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -81,25 +79,38 @@
   </div>
   
   {% if total_pages > 1 %}
-  <div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-top:20px; flex-wrap:wrap;">
-    {% if current_page > 1 %}
-    <a href="{{ url_for('dashboard', year=year, month=month, page=current_page-1) }}" style="padding:8px 16px; background:#3b82f6; color:white; text-decoration:none; border-radius:4px;">← Zurück</a>
-    {% endif %}
-    
-    <span style="padding:8px 16px;">
-      Seite {{ current_page }} von {{ total_pages }}
-    </span>
-    
-    {% if current_page < total_pages %}
-    <a href="{{ url_for('dashboard', year=year, month=month, page=current_page+1) }}" style="padding:8px 16px; background:#3b82f6; color:white; text-decoration:none; border-radius:4px;">Weiter →</a>
-    {% endif %}
-  </div>
+  <nav aria-label="Seitennavigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% if current_page > 1 %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('dashboard', year=year, month=month, page=current_page-1) }}">← Zurück</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">← Zurück</span>
+      </li>
+      {% endif %}
+      
+      <li class="page-item active">
+        <span class="page-link">Seite {{ current_page }} von {{ total_pages }}</span>
+      </li>
+      
+      {% if current_page < total_pages %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('dashboard', year=year, month=month, page=current_page+1) }}">Weiter →</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">Weiter →</span>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
   {% endif %}
   {% else %}
-  <p style="margin-top:12px; color:#6b7280;">Keine Buchungen gefunden.</p>
+  <p class="text-muted mt-3">Keine Buchungen gefunden.</p>
   {% endif %}
 </div>
-
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -110,19 +121,57 @@
   const valuesHaben = {{ values_haben|tojson }};
   const valuesSoll = {{ values_soll|tojson }};
 
+  // Farbpalette für Kategorien
+  const colorPalette = [
+    '#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6',
+    '#8b5cf6', '#ec4899', '#14b8a6', '#a855f7', '#f472b6',
+    '#06b6d4', '#84cc16', '#eab308', '#f43f5e', '#6366f1'
+  ];
+
+  // Datensätze für gestapeltes Diagramm: eine Kategorie = ein Datensatz
+  const datasets = labelsCat.map((kategorie, index) => {
+    return {
+      label: kategorie,
+      data: [valuesHaben[index] || 0, valuesSoll[index] || 0],
+      backgroundColor: colorPalette[index % colorPalette.length]
+    };
+  });
+
   new Chart(catCtx, {
     type: 'bar',
     data: {
-      labels: labelsCat,
-      datasets: [
-        { label: 'Einnahmen', data: valuesHaben, backgroundColor: '#22c55e' },
-        { label: 'Ausgaben', data: valuesSoll, backgroundColor: '#ef4444' }
-      ]
+      labels: ['Einnahmen', 'Ausgaben'],
+      datasets: datasets
     },
     options: {
       responsive: true,
-      plugins: { legend: { position: 'top' } },
-      scales: { y: { beginAtZero: true } }
+      plugins: { 
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              label += new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(context.parsed.y);
+              return label;
+            }
+          }
+        }
+      },
+      scales: { 
+        x: { stacked: true },
+        y: { 
+          beginAtZero: true,
+          stacked: true,
+          ticks: {
+            callback: function(value) {
+              return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
+            }
+          }
+        }
+      }
     }
   });
 
@@ -147,4 +196,3 @@
   });
 </script>
 {% endblock %}
-

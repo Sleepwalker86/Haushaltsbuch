@@ -1,38 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="margin-top:16px; display:flex; align-items:center; gap:16px; justify-content:space-between;">
-  <h1 style="margin:0;">Buchung erfassen</h1>
-  <a href="{{ url_for('dashboard') }}">
-    <button type="button">Zum Dashboard</button>
-  </a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="mb-0">Buchung erfassen</h1>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">Zum Dashboard</a>
 </div>
 
 {% if get_flashed_messages() %}
-  <div class="messages">
+  <div class="mb-3">
     {% for msg in get_flashed_messages(with_categories=true) %}
       {% set cat, text = msg %}
-      <div class="msg {{ cat }}">{{ text }}</div>
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+        {{ text }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
     {% endfor %}
   </div>
 {% endif %}
 
 <form method="post">
-  <div>
-    <label for="datum">Datum</label>
-    <input type="date" id="datum" name="datum" required>
+  <div class="mb-3">
+    <label for="datum" class="form-label">Datum</label>
+    <input type="date" class="form-control" id="datum" name="datum" required>
   </div>
 
-  <div>
-    <label for="typ">Typ</label>
-    <select id="typ" name="typ" required>
+  <div class="mb-3">
+    <label for="typ" class="form-label">Typ</label>
+    <select class="form-select" id="typ" name="typ" required>
       <option value="Ausgaben" selected>Ausgaben</option>
       <option value="Einnahmen">Einnahmen</option>
     </select>
   </div>
 
-  <div>
-    <label for="kategorie">Kategorie</label>
-    <select id="kategorie" name="kategorie" required>
+  <div class="mb-3">
+    <label for="kategorie" class="form-label">Kategorie</label>
+    <select class="form-select" id="kategorie" name="kategorie" required>
       <option value="">Bitte wählen</option>
       {% for k in kategorien %}
         <option value="{{ k }}">{{ k }}</option>
@@ -40,18 +41,16 @@
     </select>
   </div>
 
-  <div>
-    <label for="betrag">Betrag</label>
-    <input type="text" id="betrag" name="betrag" inputmode="decimal" placeholder="z.B. 25,50" required>
+  <div class="mb-3">
+    <label for="betrag" class="form-label">Betrag</label>
+    <input type="text" class="form-control" id="betrag" name="betrag" inputmode="decimal" placeholder="z.B. 25,50" required>
   </div>
 
-  <div>
-    <label for="beschreibung">Beschreibung</label>
-    <textarea id="beschreibung" name="beschreibung" rows="3" placeholder="z.B. Barzahlung Supermarkt" required></textarea>
+  <div class="mb-3">
+    <label for="beschreibung" class="form-label">Beschreibung</label>
+    <textarea class="form-control" id="beschreibung" name="beschreibung" rows="3" placeholder="z.B. Barzahlung Supermarkt" required></textarea>
   </div>
 
-  <button type="submit">Speichern</button>
+  <button type="submit" class="btn btn-primary">Speichern</button>
 </form>
-
 {% endblock %}
-
