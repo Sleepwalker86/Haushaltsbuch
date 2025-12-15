@@ -310,6 +310,9 @@ def dashboard():
     values_haben = [c["haben"] for c in cat_summary]
     values_soll = [c["soll"] for c in cat_summary]
 
+    total_haben = sum(values_haben)
+    total_soll = sum(values_soll)
+
     labels_ts = [t["period"] for t in time_series]
     values_ts = [t["saldo"] for t in time_series]
 
@@ -342,6 +345,8 @@ def dashboard():
         konten=konten,
         konto=konto,
         kategorie2_filter=kategorie2_filter,
+        total_haben=total_haben,
+        total_soll=total_soll,
     )
 
 

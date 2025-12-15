@@ -34,7 +34,7 @@
 <div class="tab-content" id="settingsTabsContent">
   <div class="tab-pane fade {% if active_tab == 'upload' %}show active{% endif %}" id="upload-pane" role="tabpanel" aria-labelledby="upload-tab">
     <div class="row g-3">
-      <div class="col-12 col-md-8">
+      <div class="col-12">
         <h2 class="h5 mb-3">CSV-Datei hochladen</h2>
         <form method="post" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data">
           <div class="input-group">
@@ -46,7 +46,7 @@
         </form>
       </div>
 
-      <div class="col-12 col-md-4">
+      <div class="col-12">
         <h2 class="h5 mb-3">CSV-Verarbeitung</h2>
         <form method="post" action="{{ url_for('reload_categories') }}" class="mb-2">
           <button type="submit" class="btn btn-outline-secondary w-100">
