@@ -142,24 +142,6 @@
   {% else %}
   <p class="text-muted mt-3">Keine Buchungen gefunden.</p>
   {% endif %}
-
-  <div class="row mb-2">
-    <div class="col-12 col-md-3">
-      <form method="post" action="{{ url_for('reload_categories') }}" class="mt-3">
-        <button type="submit" class="btn btn-outline-secondary w-100">
-          Kategorien neu laden
-        </button>
-      </form>
-    </div>
-  
-    <div class="col-12 col-md-3">
-      <form method="post" action="{{ url_for('import_data') }}" class="mt-3">
-        <button type="submit" class="btn btn-outline-secondary w-100">
-          CSV Daten einlesen
-        </button>
-      </form>
-    </div>
-  </div>
   
 </div>
 
