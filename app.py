@@ -338,7 +338,8 @@ def edit_buchung(buchung_id):
                 cur.execute(
                     """
                     UPDATE buchungen
-                    SET datum=%s, art=%s, beschreibung=%s, soll=%s, haben=%s, kategorie=%s
+                    SET datum=%s, art=%s, beschreibung=%s, soll=%s, haben=%s, kategorie=%s, 
+                    manually_edit=1
                     WHERE id=%s
                     """,
                     (datum, art, beschreibung, soll, haben, kategorie, buchung_id),

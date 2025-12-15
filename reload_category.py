@@ -49,7 +49,7 @@ for b_id, beschreibung in buchungen:
     kategorie = get_kategorie(beschreibung_norm, kat_map)
 
     # Update durchführen
-    cursor.execute("UPDATE buchungen SET kategorie=%s WHERE id=%s", (kategorie, b_id))
+    cursor.execute("UPDATE buchungen SET kategorie=%s WHERE id=%s AND manually_edit IS NULL OR manually_edit=0", (kategorie, b_id))
     update_count += 1
 
 db.commit()
