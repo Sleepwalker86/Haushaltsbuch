@@ -1,4 +1,6 @@
-from db import get_connection
+import mysql.connector
+
+from db import get_connection, load_db_config
 
 
 DDL_STATEMENTS = [
@@ -46,6 +48,28 @@ DDL_STATEMENTS = [
 
 
 def main():
+    # Zuerst sicherstellen, dass die Datenbank existiert
+    cfg = load_db_config()
+    db_name = cfg["database"]
+
+    # Verbindung ohne Datenbank herstellen, um sie ggf. anzulegen
+    server_conn = mysql.connector.connect(
+        host=cfg["host"],
+        user=cfg["user"],
+        password=cfg["password"],
+    )
+    try:
+        cur = server_conn.cursor()
+        cur.execute(
+            f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
+            "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+        )
+        server_conn.commit()
+        cur.close()
+    finally:
+        server_conn.close()
+
+    # Jetzt mit der eigentlichen DB verbinden und Tabellen anlegen
     conn = get_connection()
     try:
         cur = conn.cursor()
