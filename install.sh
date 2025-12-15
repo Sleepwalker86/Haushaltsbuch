@@ -47,15 +47,14 @@ fi
 # APP ORDNER & GIT
 # -----------------------------
 if [ -d "$APP_DIR/.git" ]; then
-    echo "🔄 App existiert bereits, aktualisiere mit git pull..."
-    cd "$APP_DIR"
-    git reset --hard
-    git pull
+    echo "🔄 App existiert bereits – aktualisiere mit git pull als ${APP_USER}..."
+    sudo -u "$APP_USER" git -C "$APP_DIR" reset --hard
+    sudo -u "$APP_USER" git -C "$APP_DIR" pull
 else
     echo "📁 Erstelle App-Verzeichnis und klone Repo..."
     mkdir -p "$APP_DIR"
     chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
-    git clone "$GIT_REPO" "$APP_DIR"
+    sudo -u "$APP_USER" git clone "$GIT_REPO" "$APP_DIR"
 fi
 
 # Unterordner erstellen
