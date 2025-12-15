@@ -1,6 +1,8 @@
 from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, flash, url_for
 import math
+import subprocess
+import sys
 
 from db import get_connection
 
@@ -75,6 +77,36 @@ def fetch_time_series(year=None, month=None):
         rows = cur.fetchall()
         cur.close()
         return [{"period": r[0], "saldo": float(r[1] or 0)} for r in rows]
+
+
+def fetch_einzahlungen_by_iban(year=None, month=None):
+    where = ["haben > 0", "gegen_iban IS NOT NULL", "gegen_iban != ''"]
+    params = []
+    if year:
+        where.append("YEAR(datum) = %s")
+        params.append(year)
+    if month:
+        where.append("MONTH(datum) = %s")
+        params.append(month)
+    where_sql = f"WHERE {' AND '.join(where)}"
+    sql = f"""
+        SELECT gegen_iban,
+               SUM(haben) AS total_haben
+        FROM buchungen
+        {where_sql}
+        GROUP BY gegen_iban
+        ORDER BY total_haben DESC
+        LIMIT 20
+    """
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+        cur.close()
+        return [
+            {"iban": r[0] or "Unbekannt", "betrag": float(r[1] or 0)}
+            for r in rows
+        ]
 
 
 def fetch_buchungen(year=None, month=None, page=1, per_page=30):
@@ -218,6 +250,7 @@ def dashboard():
     cat_summary = fetch_category_summary(year, month)
     time_series = fetch_time_series(year, month)
     buchungen, total_buchungen, total_pages = fetch_buchungen(year, month, page)
+    einzahlungen = fetch_einzahlungen_by_iban(year, month)
 
     labels_cat = [c["kategorie"] for c in cat_summary]
     values_haben = [c["haben"] for c in cat_summary]
@@ -225,6 +258,9 @@ def dashboard():
 
     labels_ts = [t["period"] for t in time_series]
     values_ts = [t["saldo"] for t in time_series]
+
+    labels_iban = [e["iban"] for e in einzahlungen]
+    values_iban = [e["betrag"] for e in einzahlungen]
 
     kategorien = fetch_categories()
 
@@ -237,12 +273,33 @@ def dashboard():
         values_soll=values_soll,
         labels_ts=labels_ts,
         values_ts=values_ts,
+        labels_iban=labels_iban,
+        values_iban=values_iban,
         buchungen=buchungen,
         current_page=page,
         total_pages=total_pages,
         total_buchungen=total_buchungen,
         kategorien=kategorien,
     )
+
+
+@app.route("/reload-categories", methods=["POST"])
+def reload_categories():
+    try:
+        subprocess.run([sys.executable, "reload_category.py"], check=True)
+        flash("Kategorien wurden neu geladen.", "success")
+    except subprocess.CalledProcessError as exc:
+        flash(f"Fehler beim Neuladen: {exc}", "error")
+    return redirect(url_for("dashboard"))
+
+@app.route("/import_data", methods=["POST"])
+def import_data():
+    try:
+        subprocess.run([sys.executable, "import_data.py"], check=True)
+        flash("Daten wurden neu eingelesen.", "success")
+    except subprocess.CalledProcessError as exc:
+        flash(f"Fehler beim lesen der Daten: {exc}", "error")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/edit/<int:buchung_id>", methods=["GET", "POST"])
@@ -290,7 +347,8 @@ def edit_buchung(buchung_id):
                 cur.execute(
                     """
                     UPDATE buchungen
-                    SET datum=%s, art=%s, beschreibung=%s, soll=%s, haben=%s, kategorie=%s
+                    SET datum=%s, art=%s, beschreibung=%s, soll=%s, haben=%s, kategorie=%s, 
+                    manually_edit=1
                     WHERE id=%s
                     """,
                     (datum, art, beschreibung, soll, haben, kategorie, buchung_id),

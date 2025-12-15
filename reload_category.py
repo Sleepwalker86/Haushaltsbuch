@@ -1,15 +1,19 @@
 import mysql.connector
 import re
+import json
+
+# =============================
+# CONFIG LADEN
+# =============================
+with open("config.json", "r") as f:
+    config = json.load(f)
+
+DB_CONFIG = config["DB_CONFIG"]
 
 # =============================
 # DB KONFIGURATION
 # =============================
-DB_CONFIG = {
-    "host": "192.168.10.99",
-    "user": "smo",
-    "password": "1234",
-    "database": "Haushaltsbuch"
-}
+DB_CONFIG = config["DB_CONFIG"]
 
 # =============================
 # HILFSFUNKTIONEN
@@ -49,7 +53,7 @@ for b_id, beschreibung in buchungen:
     kategorie = get_kategorie(beschreibung_norm, kat_map)
 
     # Update durchführen
-    cursor.execute("UPDATE buchungen SET kategorie=%s WHERE id=%s", (kategorie, b_id))
+    cursor.execute("UPDATE buchungen SET kategorie=%s WHERE id=%s AND manually_edit IS NULL OR manually_edit=0", (kategorie, b_id))
     update_count += 1
 
 db.commit()
