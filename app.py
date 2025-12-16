@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from flask import Flask, render_template, request, redirect, flash, url_for
+from flask import Flask, render_template, request, redirect, flash, url_for, Response
 import math
 import os
 import subprocess
@@ -189,7 +189,7 @@ def fetch_konten_details():
         ]
 
 
-def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kategorie2_filter=None):
+def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kategorie2_filter=None, kategorie_filter=None):
     where = []
     params = []
     if year:
@@ -201,6 +201,9 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
     if konto:
         where.append("konto = %s")
         params.append(konto)
+    if kategorie_filter:
+        where.append("kategorie = %s")
+        params.append(kategorie_filter)
     if kategorie2_filter:
         where.append("kategorie2 LIKE %s")
         params.append(f"%{kategorie2_filter}%")
@@ -336,6 +339,7 @@ def dashboard():
     year = request.args.get("year") or default_year
     month = request.args.get("month") or default_month
     konto = request.args.get("konto") or ""
+    kategorie_filter = request.args.get("kategorie_filter") or ""
     kategorie2_filter = request.args.get("kategorie2_filter") or ""
     page = int(request.args.get("page", 1))
     
@@ -349,7 +353,7 @@ def dashboard():
     cat_summary = fetch_category_summary(year, month)
     time_series = fetch_time_series(year, month)
     buchungen, total_buchungen, total_pages = fetch_buchungen(
-        year, month, page, konto=konto or None, kategorie2_filter=kategorie2_filter or None
+        year, month, page, konto=konto or None, kategorie_filter=kategorie_filter or None, kategorie2_filter=kategorie2_filter or None
     )
     einzahlungen = fetch_einzahlungen_by_iban(year, month)
 
@@ -391,9 +395,96 @@ def dashboard():
         kategorien=kategorien,
         konten=konten,
         konto=konto,
+        kategorie_filter=kategorie_filter,
         kategorie2_filter=kategorie2_filter,
         total_haben=total_haben,
         total_soll=total_soll,
+    )
+
+
+@app.route("/dashboard/export")
+def export_buchungen():
+    """Exportiert alle zur aktuellen Filtereinstellung passenden Buchungen als CSV."""
+    today = date.today()
+    default_year = str(today.year)
+    default_month = str(today.month)
+
+    year = request.args.get("year") or default_year
+    month = request.args.get("month") or default_month
+    konto = request.args.get("konto") or ""
+    kategorie_filter = request.args.get("kategorie_filter") or ""
+    kategorie2_filter = request.args.get("kategorie2_filter") or ""
+
+    where = []
+    params = []
+    if year:
+        where.append("YEAR(datum) = %s")
+        params.append(year)
+    if month:
+        where.append("MONTH(datum) = %s")
+        params.append(month)
+    if konto:
+        where.append("konto = %s")
+        params.append(konto)
+    if kategorie_filter:
+        where.append("kategorie = %s")
+        params.append(kategorie_filter)
+    if kategorie2_filter:
+        where.append("kategorie2 LIKE %s")
+        params.append(f"%{kategorie2_filter}%")
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+
+    sql = f"""
+        SELECT datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto
+        FROM buchungen
+        {where_sql}
+        ORDER BY datum DESC, id DESC
+    """
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+        cur.close()
+
+    # CSV erstellen (deutsches Semikolon-Format)
+    import csv
+    from io import StringIO
+
+    output = StringIO()
+    writer = csv.writer(output, delimiter=";")
+
+    # Kopfzeile
+    writer.writerow(
+        ["Datum", "Art", "Beschreibung", "Soll", "Haben", "Kategorie", "Unterkategorie", "Konto"]
+    )
+
+    for datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto_val in rows:
+        if isinstance(datum, (datetime, date)):
+            datum_str = datum.strftime("%d.%m.%Y")
+        else:
+            datum_str = str(datum) if datum is not None else ""
+        writer.writerow(
+            [
+                datum_str,
+                art or "",
+                beschreibung or "",
+                f"{float(soll or 0):.2f}".replace(".", ","),
+                f"{float(haben or 0):.2f}".replace(".", ","),
+                kategorie or "",
+                kategorie2 or "",
+                konto_val or "",
+            ]
+        )
+
+    csv_data = output.getvalue()
+    output.close()
+
+    filename = f"buchungen_{year}_{month}.csv"
+    return Response(
+        csv_data,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
@@ -427,6 +518,7 @@ def edit_buchung(buchung_id):
             kategorie2 = request.form.get("kategorie2", "").strip()
             typ = request.form.get("typ", "Ausgaben").strip()
             betrag_raw = request.form.get("betrag", "").strip()
+            manually_edit_flag = 1 if request.form.get("manually_edit") == "on" else 0
 
             if not datum_raw or not betrag_raw or not kategorie:
                 raise ValueError("Datum, Betrag und Kategorie sind erforderlich.")
@@ -469,10 +561,10 @@ def edit_buchung(buchung_id):
                         haben=%s,
                         kategorie=%s,
                         kategorie2=%s,
-                        manually_edit=1
+                        manually_edit=%s
                     WHERE id=%s
                     """,
-                    (datum, art, beschreibung, soll, haben, kategorie, kategorie2, buchung_id),
+                    (datum, art, beschreibung, soll, haben, kategorie, kategorie2, manually_edit_flag, buchung_id),
                 )
                 conn.commit()
                 cur.close()
@@ -486,7 +578,7 @@ def edit_buchung(buchung_id):
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto FROM buchungen WHERE id=%s",
+            "SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, manually_edit FROM buchungen WHERE id=%s",
             (buchung_id,),
         )
         row = cur.fetchone()
@@ -505,6 +597,7 @@ def edit_buchung(buchung_id):
             "kategorie": row[6] or "",
             "kategorie2": row[7] or "",
             "konto": row[8] or "",
+            "manually_edit": int(row[9] or 0),
         }
 
     kategorien = fetch_categories()
