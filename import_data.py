@@ -55,7 +55,7 @@ def parse_art(umsatztyp):
         return "Geldautomat"
     return umsatztyp.split()[0] if umsatztyp else ""
 
-def send_image_to_paperless(image_path, paperless_url, paperless_token):
+def send_image_to_paperless(image_path, paperless_url, paperless_token, paperless_document_type_id):
     """
     Sendet ein Bild an Paperless-ngx über die API.
     Gibt True zurück bei Erfolg, False bei Fehler.
@@ -70,7 +70,7 @@ def send_image_to_paperless(image_path, paperless_url, paperless_token):
 
         # Dokumententyp fest vergeben
         data = {
-            "document_type": 47
+            "document_type": paperless_document_type_id
         }
         
         with open(image_path, "rb") as f:
@@ -219,6 +219,7 @@ print("✅ Alle CSVs verarbeitet.")
 if PAPERLESS_CONFIG.get("ip") and PAPERLESS_CONFIG.get("token"):
     paperless_url = PAPERLESS_CONFIG["ip"]
     paperless_token = PAPERLESS_CONFIG["token"]
+    paperless_document_type_id = PAPERLESS_CONFIG["document_type_id"]
     
     # Unterstützte Bildformate
     image_extensions = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".pdf"}
@@ -236,7 +237,7 @@ if PAPERLESS_CONFIG.get("ip") and PAPERLESS_CONFIG.get("token"):
             image_path = os.path.join(IMAGE_DIR, image_file)
             print(f"📤 Sende: {image_file}")
             
-            if send_image_to_paperless(image_path, paperless_url, paperless_token):
+            if send_image_to_paperless(image_path, paperless_url, paperless_token, paperless_document_type_id):
                 try:
                     os.remove(image_path)
                     print(f"✅ {image_file} erfolgreich gesendet und gelöscht")

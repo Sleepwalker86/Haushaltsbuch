@@ -351,6 +351,17 @@
                    required>
             <div class="form-text">Der API-Token aus den Paperless-Einstellungen</div>
           </div>
+          <div class="mb-3">
+            <label for="document_type_id" class="form-label">Dokumententyp ID</label>
+            <input type="text"
+                   class="form-control"
+                   id="document_type_id"
+                   name="document_type_id"
+                   value="{{ paperless_config.document_type_id if paperless_config else '' }}"
+                   placeholder="z.B. 47"
+                   required>
+            <div class="form-text">ID des Dokumententyps in Paperless</div>
+          </div>
           <button type="submit" class="btn btn-primary">
             Einstellungen speichern
           </button>

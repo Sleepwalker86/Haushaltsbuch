@@ -12,6 +12,7 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
 - Dashboard mit Diagrammen (Kategorien, Ausgaben, Einzahlungen)
 - Verwaltung von Konten (Name, IBAN, Beschreibung)
 - Zeitgesteuerten Import über systemd-Timer auf dem Server
+- Foto Rechnungen direkt an eine Paperless instance senden
 
 ---
 

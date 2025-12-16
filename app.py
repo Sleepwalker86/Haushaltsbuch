@@ -727,13 +727,14 @@ def settings():
         elif form_type == "paperless":
             paperless_ip = request.form.get("paperless_ip", "").strip()
             paperless_token = request.form.get("paperless_token", "").strip()
-
+            document_type_id = request.form.get("document_type_id", "").strip()
             try:
                 config = load_config()
                 if "PAPERLESS" not in config:
                     config["PAPERLESS"] = {}
                 config["PAPERLESS"]["ip"] = paperless_ip
                 config["PAPERLESS"]["token"] = paperless_token
+                config["PAPERLESS"]["document_type_id"] = document_type_id
                 save_config(config)
                 flash("Paperless-Einstellungen wurden gespeichert.", "success")
             except Exception as exc:
@@ -807,6 +808,7 @@ def settings():
             paperless_config = {
                 "ip": config["PAPERLESS"].get("ip", ""),
                 "token": config["PAPERLESS"].get("token", ""),
+                "document_type_id": config["PAPERLESS"].get("document_type_id", ""),
             }
     except Exception:
         pass
@@ -836,12 +838,12 @@ def paperless():
             return redirect(url_for("paperless"))
 
         # Erlaubte Bildformate
-        allowed_extensions = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
+        allowed_extensions = {".pdf", ".jpg", ".jpeg", ".png", ".heic", ".heif"}
         filename = secure_filename(file.filename)
         file_ext = os.path.splitext(filename)[1].lower()
         
         if file_ext not in allowed_extensions:
-            flash("Nur Bilddateien (JPG, PNG, HEIC) sind erlaubt.", "error")
+            flash("Nur Bilddateien (PDF, JPG, PNG, HEIC) sind erlaubt.", "error")
             return redirect(url_for("paperless"))
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
