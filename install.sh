@@ -79,11 +79,20 @@ fi
 
 echo "🐍 Installiere Python-Abhängigkeiten in venv..."
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install --upgrade pip
-sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install \
-  flask \
-  mysql-connector-python \
-  pandas \
-  python-dateutil
+
+# Wenn eine requirements.txt im Repo liegt, immer diese installieren (auch bei Updates),
+# damit neue Abhängigkeiten automatisch nachgezogen werden.
+if [ -f "$APP_DIR/requirements.txt" ]; then
+  echo "🐍 Installiere Python-Abhängigkeiten aus requirements.txt..."
+  sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+else
+  echo "⚠️  requirements.txt nicht gefunden, installiere Minimal-Set direkt..."
+  sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install \
+    flask \
+    mysql-connector-python \
+    pandas \
+    python-dateutil
+fi
 
 # -----------------------------
 # CONFIG.JSON
