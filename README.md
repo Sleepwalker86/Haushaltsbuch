@@ -12,7 +12,10 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
 - Dashboard mit Diagrammen (Kategorien, Ausgaben, Einzahlungen)
 - Verwaltung von Konten (Name, IBAN, Beschreibung)
 - Zeitgesteuerten Import über systemd-Timer auf dem Server
-- Foto Rechnungen direkt an eine Paperless instance senden
+- Erweiterte Filterung (Jahr, Monat, Konto, Kategorie, Unterkategorie)
+- CSV-Export der gefilterten Buchungen
+- Paperless-Integration: Dokumente fotografieren und automatisch an Paperless senden
+- Manuell bearbeitete Buchungen kennzeichnen (`manually_edit` Toggle)
 
 ---
 
@@ -20,7 +23,7 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
 
 ### Dashboard (`/dashboard`)
 
-- **Filter**: Jahr, Monat, Konto (IBAN), Unterkategorie (Freitext).
+- **Filter**: Jahr, Monat, Konto (IBAN), Kategorie (Dropdown), Unterkategorie (Freitext).
 - **Diagramme (Chart.js)**:
   - Kategorien (Einnahmen/Ausgaben) als gestapeltes Balkendiagramm inkl. Summen (gesamt Einnahmen/Ausgaben).
   - Ausgaben (Kategorien) als Tortendiagramm.
@@ -29,6 +32,7 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
   - Spalten: Datum, Art, Beschreibung, Soll, Haben, Kategorie, Unterkategorie.
   - Paginierung (30 Einträge pro Seite).
   - Bearbeiten-Button je Buchung → `/edit/<id>`.
+  - **CSV-Export**: Button zum Herunterladen aller gefilterten Buchungen als CSV-Datei.
 
 ### Buchung erfassen (`/`)
 
@@ -49,7 +53,9 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
 
 - Bearbeiten:
   - Alle Felder der Buchung änderbar.
-  - Beim Speichern wird `manually_edit = 1` gesetzt.
+  - **Manually_edit Toggle**: Switch zum Ein-/Ausschalten der `manually_edit`-Kennzeichnung.
+    - Wenn aktiviert: Buchung wird als manuell bearbeitet markiert (neue Kategorien werden nicht automatisch gesetzt).
+    - Standard: Beim Speichern wird `manually_edit = 1` gesetzt, kann aber deaktiviert werden.
 - Löschen:
   - Separater Button mit Sicherheitsabfrage (`confirm`).
   - Löscht aus `buchungen` und leitet zurück ins Dashboard inkl. Filter.
@@ -69,8 +75,19 @@ Zwei Tabs:
     - Name
     - Beschreibung
     - IBAN
-  - Liste vorhandener Konten aus Tabelle `konten` mit Bearbeiten-Icon:
+  - Liste vorhandener Konten aus Tabelle `konten` mit Bearbeiten- und Löschen-Icon:
     - Klick lädt das Konto in das Formular zum Editieren (selber Tab).
+    - Löschen mit Sicherheitsabfrage.
+
+- **Kategorien & Schlüsselwörter**
+  - **Kategorien-Stammdaten**: Kategorien aus der `category`-Tabelle anlegen und löschen.
+  - **Schlüsselwort-Zuordnungen**: Zuordnungen zwischen Schlüsselwörtern und Kategorien in der `keyword_category`-Tabelle verwalten (anlegen, bearbeiten, löschen).
+
+- **Paperless**
+  - Paperless-API-Konfiguration:
+    - Paperless-URL/IP-Adresse
+    - API-Token
+    - Dokumententyp-ID
 
 ---
 
@@ -84,6 +101,7 @@ Zwei Tabs:
   - `mysql-connector-python`
   - `pandas`
   - `python-dateutil`
+  - `requests` (für Paperless-API)
 - **Systempakete**:
   - `python3`, `python3-venv`, `python3-pip`
   - `mariadb-client`
@@ -199,6 +217,35 @@ Dann ist die App unter `http://127.0.0.1:5001` erreichbar.
 
 ---
 
+## Paperless-Integration
+
+### Funktionen
+
+1. **Dokumente fotografieren** (`/paperless`):
+   - Direkter Zugriff auf die iPhone/iPad-Kamera über die Web-Oberfläche.
+   - Unterstützte Formate: JPG, PNG, HEIC, HEIF, PDF.
+   - Bilder werden im Ordner `image/` gespeichert.
+
+2. **Automatischer Upload**:
+   - Das Skript `import_data.py` prüft bei jedem Lauf (alle 10 Minuten via Timer) den `image/`-Ordner.
+   - Neue Bilder werden automatisch an die konfigurierte Paperless-Instanz gesendet.
+   - Bei erfolgreichem Upload werden die Bilder gelöscht.
+   - Bei Fehlern bleiben die Bilder erhalten für manuelle Nachbearbeitung.
+
+3. **Konfiguration**:
+   - In den Einstellungen (Tab "Paperless") können konfiguriert werden:
+     - Paperless-URL/IP-Adresse (z. B. `http://192.168.1.100:8000`)
+     - API-Token (aus den Paperless-Einstellungen)
+     - Dokumententyp-ID (optional, für automatische Kategorisierung)
+
+### Voraussetzungen
+
+- Paperless-ngx oder Paperless-ng Instanz muss erreichbar sein.
+- API-Token muss in Paperless generiert werden (Einstellungen → API-Token).
+- Die Konfiguration wird in `config.json` unter `PAPERLESS` gespeichert.
+
+---
+
 ## Nutzung
 
 1. **Einstellungen → Konten**: Konten anlegen (Name, IBAN, Beschreibung).
@@ -206,9 +253,14 @@ Dann ist die App unter `http://127.0.0.1:5001` erreichbar.
    - Im Tab „Upload“ CSV hochladen (landet im `import/`-Ordner).
    - „CSV Daten einlesen“ ausführen oder Timer abwarten.
 3. **Dashboard** ansehen und filtern:
-   - Jahr, Monat, Konto, Unterkategorie.
+   - Jahr, Monat, Konto, Kategorie, Unterkategorie.
+   - Gefilterte Buchungen als CSV exportieren.
 4. **Buchungen manuell erfassen** unter `/`.
 5. **Buchungen bearbeiten oder löschen** über die Tabelle im Dashboard.
+   - `manually_edit`-Status per Toggle ein-/ausschalten.
+6. **Paperless-Integration**:
+   - Dokumente fotografieren unter `/paperless`.
+   - Automatischer Upload erfolgt beim nächsten CSV-Import (alle 10 Minuten).
 
 ---
 

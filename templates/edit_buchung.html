@@ -63,6 +63,12 @@
     <label for="beschreibung" class="form-label">Beschreibung</label>
     <textarea class="form-control" id="beschreibung" name="beschreibung" rows="3" placeholder="z.B. Barzahlung Supermarkt" required>{{ buchung.beschreibung }}</textarea>
   </div>
+
+  <div class="form-check form-switch mb-3">
+    <input class="form-check-input" type="checkbox" role="switch" id="manually_edit" name="manually_edit"
+           {% if buchung.manually_edit %}checked{% endif %}>
+    <label class="form-check-label" for="manually_edit">Manuell bearbeitet (neue Kategorie wird nicht automatisch gesetzt!)</label>
+  </div>
 </form>
 
 <div class="d-flex justify-content-between align-items-center mt-3">

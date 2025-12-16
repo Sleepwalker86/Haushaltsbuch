@@ -10,9 +10,10 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
   <style>
     :root {
-      --accent: #4f46e5;      /* moderne Indigo-Farbe */
-      --text-main: #0f172a;   /* Slate 900 */
-      --text-muted: #64748b;  /* Slate 500 */
+      --accent: #4f46e5;        /* moderne Indigo-Farbe */
+      --accent-soft: #22c55e;   /* frisches Grün als zweite Akzentfarbe */
+      --text-main: #0f172a;     /* Slate 900 */
+      --text-muted: #64748b;    /* Slate 500 */
       --border-light: #e5e7eb;
     }
   
@@ -28,7 +29,6 @@
   
     /* Navbar modern */
     .navbar {
-      background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border-light);
     }
@@ -67,7 +67,7 @@
       right: 0.9rem;
       bottom: 4px;
       height: 2px;
-      background-color: var(--accent);
+      background: linear-gradient(90deg, var(--accent), var(--accent-soft));
       border-radius: 2px;
     }
   
@@ -78,7 +78,7 @@
     }
   
     .card-body {
-      padding: 2rem;
+      padding: 1rem;
     }
     .chart-bar,
     .chart-pie {

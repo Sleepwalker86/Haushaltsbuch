@@ -32,6 +32,17 @@
       </select>
     </div>
     <div class="col-12 col-md-3">
+      <label for="kategorie_filter" class="form-label">Kategorie</label>
+      <select class="form-select" id="kategorie_filter" name="kategorie_filter">
+        <option value="">Alle Kategorien</option>
+        {% for kat in kategorien %}
+          <option value="{{ kat }}" {% if kat == kategorie_filter %}selected{% endif %}>
+            {{ kat }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3">
       <label for="kategorie2_filter" class="form-label">Unterkategorie enthält</label>
       <input type="text" class="form-control" id="kategorie2_filter" name="kategorie2_filter"
              value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
@@ -93,7 +104,15 @@
 </div>
 
 <div class="mt-5">
-  <h3 class="h5 mb-3">Buchungen ({{ total_buchungen }} Einträge)</h3>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="h5 mb-0">Buchungen ({{ total_buchungen }} Einträge)</h3>
+    {% if buchungen %}
+    <a class="btn btn-sm btn-outline-secondary"
+       href="{{ url_for('export_buchungen', year=year, month=month, konto=konto, kategorie_filter=kategorie_filter, kategorie2_filter=kategorie2_filter) }}">
+      CSV herunterladen
+    </a>
+    {% endif %}
+  </div>
   {% if buchungen %}
   <div class="table-responsive">
     <table class="table table-striped table-hover">
