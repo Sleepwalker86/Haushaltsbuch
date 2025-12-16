@@ -67,16 +67,28 @@ def send_image_to_paperless(image_path, paperless_url, paperless_token):
         headers = {
             "Authorization": f"Token {paperless_token}"
         }
+
+        # Dokumententyp fest vergeben
+        data = {
+            "document_type": 47
+        }
         
         with open(image_path, "rb") as f:
             files = {"document": f}
-            response = requests.post(api_url, headers=headers, files=files, timeout=30)
+            response = requests.post(
+                api_url,
+                headers=headers,
+                files=files,
+                data=data,
+                timeout=30
+            )
         
         if response.status_code in (200, 201):
             return True
         else:
             print(f"⚠️  Paperless API Fehler (Status {response.status_code}): {response.text}")
             return False
+
     except requests.exceptions.RequestException as e:
         print(f"⚠️  Fehler beim Senden an Paperless: {e}")
         return False
