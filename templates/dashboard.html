@@ -45,23 +45,50 @@
 </div>
 
 <div class="row g-4 mb-4">
-  <div class="col-12 col-md-4 col-lg-4 col-xl-4 col-xxl-4">
-    <h3 class="h5 mb-1">Kategorien (Einnahmen/Ausgaben)</h3>
-    <p class="text-muted small mb-1">
-      Summe Einnahmen: {{ "%.2f"|format(total_haben) }} €
-    </p>
-    <p class="text-muted small mb-1">
-      Summe Ausgaben: {{ "%.2f"|format(total_soll) }} €
-    </p>
-    <canvas id="catChart" height="200"></canvas>
+  <!-- Kategorien (Einnahmen/Ausgaben) -->
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Kategorien (Einnahmen/Ausgaben)</h3>
+        <div class="small text-muted mt-1">
+          Summe Einnahmen: {{ "%.2f"|format(total_haben) }} €<br>
+          Summe Ausgaben: {{ "%.2f"|format(total_soll) }} €
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="catChart"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="col-12 col-md-4 col-lg-4 col-xl-4 col-xxl-4">
-    <h3 class="h5 mb-3">Ausgaben (Kategorien)</h3>
-    <canvas id="pieChart" height="200"></canvas>
+
+  <!-- Ausgaben-Pie -->
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Ausgaben (Kategorien)</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="col-12 col-md-4 col-lg-4 col-xl-4 col-xxl-4">
-    <h3 class="h5 mb-3">Einzahlungen nach IBAN</h3>
-    <canvas id="ibanChart" height="200"></canvas>
+
+  <!-- Einzahlungen nach IBAN -->
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Einzahlungen nach IBAN</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="ibanChart"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -75,10 +102,10 @@
           <th style="width: 10%;">Datum</th>
           <th class="d-none d-lg-table-cell" style="width: 10%;">Art</th>
           <th style="width: 20%;">Beschreibung</th>
-          <th class="text-end" style="width: 15%;">Soll</th>
-          <th class="text-end" style="width: 15%;">Haben</th>
           <th style="width: 15%;">Kategorie</th>
           <th style="width: 15%;">Kategorie 2</th>
+          <th class="text-end" style="width: 15%;">Soll</th>
+          <th class="text-end" style="width: 15%;">Haben</th>
           <th class="text-center" style="width: 10%;">Aktion</th>
         </tr>
       </thead>
@@ -88,16 +115,16 @@
           <td>{{ b.datum.strftime('%d.%m.%Y') if b.datum else '' }}</td>
           <td class="d-none d-lg-table-cell">{{ b.art }}</td>
           <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ b.beschreibung }}">{{ b.beschreibung }}</td>
+          <td>{{ b.kategorie }}</td>
+          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+              title="{{ b.kategorie2 }}">
+            {{ b.kategorie2 if b.kategorie2 else '-' }}
+          </td>
           <td class="text-end {% if b.soll > 0 %}text-danger{% else %}text-muted{% endif %}">
             {% if b.soll > 0 %}{{ "%.2f"|format(b.soll) }} €{% else %}-{% endif %}
           </td>
           <td class="text-end {% if b.haben > 0 %}text-success{% else %}text-muted{% endif %}">
             {% if b.haben > 0 %}{{ "%.2f"|format(b.haben) }} €{% else %}-{% endif %}
-          </td>
-          <td>{{ b.kategorie }}</td>
-          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-              title="{{ b.kategorie2 }}">
-            {{ b.kategorie2 if b.kategorie2 else '-' }}
           </td>
           <td class="text-center">
             <a href="{{ url_for('edit_buchung', buchung_id=b.id, year=year, month=month, page=current_page) }}" 
@@ -151,138 +178,112 @@
   
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  const catCtx = document.getElementById('catChart');
-  const pieCtx = document.getElementById('pieChart');
-  const ibanCtx = document.getElementById('ibanChart');
-
+<style>
+  .chart-container {
+    position: relative;
+    width: 100%;
+    height: 260px; /* Desktop-Höhe */
+  }
+  
+  @media (max-width: 768px) {
+    .chart-container {
+      height: 200px; /* Mobile-Höhe */
+    }
+  }
+  </style>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+  const colorPalette = [
+    '#ef4444','#f97316','#f59e0b','#10b981','#3b82f6',
+    '#8b5cf6','#ec4899','#14b8a6','#a855f7','#f472b6',
+    '#06b6d4','#84cc16','#eab308','#f43f5e','#6366f1'
+  ];
+  
   const labelsCat = {{ labels_cat|tojson }};
   const valuesHaben = {{ values_haben|tojson }};
   const valuesSoll = {{ values_soll|tojson }};
-
-  // Farbpalette für Kategorien
-  const colorPalette = [
-    '#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6',
-    '#8b5cf6', '#ec4899', '#14b8a6', '#a855f7', '#f472b6',
-    '#06b6d4', '#84cc16', '#eab308', '#f43f5e', '#6366f1'
-  ];
-
-  // Datensätze für gestapeltes Diagramm: eine Kategorie = ein Datensatz
-  const datasets = labelsCat.map((kategorie, index) => {
-    return {
-      label: kategorie,
-      data: [valuesHaben[index] || 0, valuesSoll[index] || 0],
-      backgroundColor: colorPalette[index % colorPalette.length]
-    };
-  });
-
-  new Chart(catCtx, {
-    type: 'bar',
-    data: {
-      labels: ['Einnahmen', 'Ausgaben'],
-      datasets: datasets
+  
+  function createCatDatasets() {
+    return labelsCat.map((label, i) => ({
+      label,
+      data: [valuesHaben[i]||0, valuesSoll[i]||0],
+      backgroundColor: colorPalette[i % colorPalette.length]
+    }));
+  }
+  
+  // Alle Charts generieren
+  function createChart(ctx, type, data, options={}) {
+    return new Chart(ctx, {
+      type,
+      data,
+      options: Object.assign({ responsive:true, maintainAspectRatio:false }, options)
+    });
+  }
+  
+  // Kategorien
+  createChart(
+    document.getElementById('catChart').getContext('2d'),
+    'bar',
+    {
+      labels:['Einnahmen','Ausgaben'],
+      datasets:createCatDatasets()
     },
-    options: {
-      responsive: true,
-      plugins: { 
-        legend: { position: 'bottom' },
+    {
+      plugins: {
+        legend: { position:'bottom' },
         tooltip: {
           callbacks: {
-            label: function(context) {
-              let label = context.dataset.label || '';
-              if (label) {
-                label += ': ';
-              }
-              label += new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(context.parsed.y);
-              return label;
+            label: ctx => {
+              let val = ctx.parsed.y;
+              return `${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(val)}`;
             }
           }
         }
       },
-      scales: { 
-        x: { stacked: true },
-        y: { 
-          beginAtZero: true,
-          stacked: true,
-          ticks: {
-            callback: function(value) {
-              return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
-            }
-          }
-        }
-      }
+      scales: { x:{stacked:true}, y:{stacked:true, beginAtZero:true, ticks:{callback:v=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(v)}} }
     }
-  });
-
-  // Ausgaben-Pie (nutzt Soll-Werte)
-  new Chart(pieCtx, {
-    type: 'pie',
-    data: {
+  );
+  
+  // Pie-Chart Ausgaben
+  createChart(
+    document.getElementById('pieChart').getContext('2d'),
+    'pie',
+    {
       labels: labelsCat,
-      datasets: [{
-        label: 'Ausgaben',
+      datasets:[{
+        label:'Ausgaben',
         data: valuesSoll,
-        backgroundColor: [
-          '#ef4444','#f97316','#f59e0b','#10b981','#3b82f6',
-          '#8b5cf6','#ec4899','#14b8a6','#a855f7','#f472b6'
-        ]
+        backgroundColor: colorPalette
       }]
     },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: 'bottom' } }
-    }
-  });
-
-  // Einzahlungen nach IBAN
+    { plugins:{ legend:{ position:'bottom' } } }
+  );
+  
+  // IBAN
   const labelsIban = {{ labels_iban|tojson }};
   const valuesIban = {{ values_iban|tojson }};
-
-  // IBANs kürzen für bessere Lesbarkeit
-  const shortLabels = labelsIban.map(iban => {
-    if (!iban || iban === 'Unbekannt') return iban;
-    // Zeige nur letzte 4 Ziffern: ...1234
-    return '...' + iban.slice(-4);
-  });
-
-  new Chart(ibanCtx, {
-    type: 'bar',
-    data: {
+  const shortLabels = labelsIban.map(i=>i&&i!=='Unbekannt'?'...'+i.slice(-4):i);
+  
+  createChart(
+    document.getElementById('ibanChart').getContext('2d'),
+    'bar',
+    {
       labels: shortLabels,
-      datasets: [{
-        label: 'Einzahlung (€)',
-        data: valuesIban,
-        backgroundColor: '#22c55e'
-      }]
+      datasets:[{ label:'Einzahlung (€)', data: valuesIban, backgroundColor:'#22c55e' }]
     },
-    options: {
-      responsive: true,
-      plugins: { 
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title: function(context) {
-              const index = context[0].dataIndex;
-              return labelsIban[index] || 'Unbekannt';
-            },
-            label: function(context) {
-              return 'Einzahlung: ' + new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(context.parsed.y);
-            }
+    {
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          callbacks:{
+            title:ctx=>labelsIban[ctx[0].dataIndex]||'Unbekannt',
+            label:ctx=>'Einzahlung: '+new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(ctx.parsed.y)
           }
         }
       },
-      scales: { 
-        y: { 
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
-            }
-          }
-        }
-      }
+      scales:{ y:{ beginAtZero:true, ticks:{callback:v=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(v)}} }
     }
-  });
-</script>
-{% endblock %}
+  );
+  </script>
+  {% endblock %}

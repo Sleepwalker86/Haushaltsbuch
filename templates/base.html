@@ -9,32 +9,118 @@
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
   <style>
-    body {
-      background-color: #f8f9fa;
-      padding: 20px 0;
+    :root {
+      --accent: #4f46e5;      /* moderne Indigo-Farbe */
+      --text-main: #0f172a;   /* Slate 900 */
+      --text-muted: #64748b;  /* Slate 500 */
+      --border-light: #e5e7eb;
     }
+  
+    body {
+      background-color: #f8fafc;
+      padding: 20px 0;
+      color: var(--text-main);
+    }
+  
     .main-container {
       max-width: 1040px;
     }
+  
+    /* Navbar modern */
+    .navbar {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-light);
+    }
+  
+    .navbar-brand {
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      color: var(--text-main);
+    }
+  
+    .navbar-brand:hover {
+      color: var(--accent);
+    }
+  
+    .nav-link {
+      color: var(--text-muted);
+      font-weight: 500;
+      padding: 0.75rem 0.9rem;
+      position: relative;
+      transition: color 0.2s ease;
+    }
+  
+    .nav-link:hover {
+      color: var(--text-main);
+    }
+  
+    /* Aktiver Menüpunkt */
+    .nav-link.active {
+      color: var(--accent);
+    }
+  
+    .nav-link.active::after {
+      content: "";
+      position: absolute;
+      left: 0.9rem;
+      right: 0.9rem;
+      bottom: 4px;
+      height: 2px;
+      background-color: var(--accent);
+      border-radius: 2px;
+    }
+  
+    /* Card etwas cleaner */
+    .card {
+      border: none;
+      border-radius: 12px;
+    }
+  
+    .card-body {
+      padding: 2rem;
+    }
+    .chart-bar,
+    .chart-pie {
+      position: relative;
+      height: 260px;
+    }
+
+    .chart-pie {
+      height: 240px;
+    }
+
+    .chart-bar canvas,
+    .chart-pie canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
   </style>
+  
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+  <nav class="navbar navbar-expand-lg mb-4">
     <div class="container main-container">
       <a class="navbar-brand" href="{{ url_for('index') }}">Haushaltsbuch</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Navigation umschalten">
+  
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#mainNavbar">
         <span class="navbar-toggler-icon"></span>
       </button>
+  
       <div class="collapse navbar-collapse" id="mainNavbar">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
+               href="{{ url_for('dashboard') }}">Dashboard</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Buchung eintragen</a>
+            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
+               href="{{ url_for('index') }}">Buchung</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'paperless' %}active{% endif %}" href="{{ url_for('paperless') }}">Paperless</a>
+            <a class="nav-link {% if request.endpoint == 'paperless' %}active{% endif %}"
+               href="{{ url_for('paperless') }}">Paperless</a>
           </li>
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'settings' and active_tab == 'upload' %}active{% endif %}"
@@ -47,7 +133,7 @@
         </ul>
       </div>
     </div>
-  </nav>
+  </nav>  
 
   <div class="container main-container">
     <div class="card shadow-sm">

@@ -16,55 +16,66 @@
   </div>
 {% endif %}
 
-<form method="post">
-  <div class="mb-3">
-    <label for="datum" class="form-label">Datum</label>
-    <input type="date" class="form-control" id="datum" name="datum" required>
+<div class="card shadow-sm">
+  <div class="card-header py-2">
+    <h2 class="m-0 h6 fw-bold">Neue Buchung</h2>
   </div>
+  <div class="card-body">
+    <form method="post">
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <label for="datum" class="form-label">Datum</label>
+          <input type="date" class="form-control" id="datum" name="datum" required>
+        </div>
 
-  <div class="mb-3">
-    <label for="typ" class="form-label">Typ</label>
-    <select class="form-select" id="typ" name="typ" required>
-      <option value="Ausgaben" selected>Ausgaben</option>
-      <option value="Einnahmen">Einnahmen</option>
-    </select>
+        <div class="col-12 col-md-4">
+          <label for="typ" class="form-label">Typ</label>
+          <select class="form-select" id="typ" name="typ" required>
+            <option value="Ausgaben" selected>Ausgaben</option>
+            <option value="Einnahmen">Einnahmen</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label for="konto" class="form-label">Konto</label>
+          <select class="form-select" id="konto" name="konto" required>
+            <option value="">Bitte wählen</option>
+            {% for k in konten %}
+              <option value="{{ k.iban }}">{{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label for="kategorie" class="form-label">Kategorie</label>
+          <select class="form-select" id="kategorie" name="kategorie" required>
+            <option value="">Bitte wählen</option>
+            {% for k in kategorien %}
+              <option value="{{ k }}">{{ k }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label for="kategorie2" class="form-label">Unterkategorie</label>
+          <input type="text" class="form-control" id="kategorie2" name="kategorie2" placeholder="z.B. Supermarkt, Barzahlung">
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label for="betrag" class="form-label">Betrag</label>
+          <input type="text" class="form-control" id="betrag" name="betrag" inputmode="decimal" placeholder="z.B. 25,50" required>
+        </div>
+
+        <div class="col-12 col-md-8">
+          <label for="beschreibung" class="form-label">Beschreibung</label>
+          <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2" placeholder="z.B. Barzahlung Supermarkt" required></textarea>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <button type="submit" class="btn btn-primary">Speichern</button>
+      </div>
+    </form>
   </div>
-
-  <div class="mb-3">
-    <label for="konto" class="form-label">Konto</label>
-    <select class="form-select" id="konto" name="konto" required>
-      <option value="">Bitte wählen</option>
-      {% for k in konten %}
-        <option value="{{ k.iban }}">{{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}</option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <div class="mb-3">
-    <label for="kategorie" class="form-label">Kategorie</label>
-    <select class="form-select" id="kategorie" name="kategorie" required>
-      <option value="">Bitte wählen</option>
-      {% for k in kategorien %}
-        <option value="{{ k }}">{{ k }}</option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <div class="mb-3">
-    <label for="kategorie2" class="form-label">Unterkategorie</label>
-    <input type="text" class="form-control" id="kategorie2" name="kategorie2" placeholder="z.B. Supermarkt, Barzahlung">
-  </div>
-
-  <div class="mb-3">
-    <label for="betrag" class="form-label">Betrag</label>
-    <input type="text" class="form-control" id="betrag" name="betrag" inputmode="decimal" placeholder="z.B. 25,50" required>
-  </div>
-
-  <div class="mb-3">
-    <label for="beschreibung" class="form-label">Beschreibung</label>
-    <textarea class="form-control" id="beschreibung" name="beschreibung" rows="3" placeholder="z.B. Barzahlung Supermarkt" required></textarea>
-  </div>
-
-  <button type="submit" class="btn btn-primary">Speichern</button>
-</form>
+</div>
 {% endblock %}

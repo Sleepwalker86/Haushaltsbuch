@@ -26,7 +26,7 @@
     <button class="nav-link {% if active_tab == 'konten' %}active{% endif %}" id="konten-tab"
             data-bs-toggle="tab" data-bs-target="#konten-pane" type="button" role="tab"
             aria-controls="konten-pane" aria-selected="{% if active_tab == 'konten' %}true{% else %}false{% endif %}">
-      Konten & Einstellungen
+      Konten
     </button>
   </li>
   <li class="nav-item" role="presentation">
@@ -49,132 +49,156 @@
   <div class="tab-pane fade {% if active_tab == 'upload' %}show active{% endif %}" id="upload-pane" role="tabpanel" aria-labelledby="upload-tab">
     <div class="row g-3">
       <div class="col-12">
-        <h2 class="h5 mb-3">CSV-Datei hochladen</h2>
-        <form method="post" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data">
-          <div class="input-group">
-            <input type="file" class="form-control" name="csv_file" accept=".csv" required>
-            <button type="submit" class="btn btn-outline-success">
-              CSV hochladen
-            </button>
+        <div class="card shadow-sm mb-3">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">CSV-Datei hochladen</h2>
           </div>
-        </form>
+          <div class="card-body">
+            <form method="post" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data">
+              <div class="input-group">
+                <input type="file" class="form-control" name="csv_file" accept=".csv" required>
+                <button type="submit" class="btn btn-outline-success">
+                  CSV hochladen
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
 
       <div class="col-12">
-        <h2 class="h5 mb-3">CSV-Verarbeitung</h2>
-        <form method="post" action="{{ url_for('reload_categories') }}" class="mb-2">
-          <button type="submit" class="btn btn-outline-secondary w-100">
-            Kategorien neu laden
-          </button>
-        </form>
-        <form method="post" action="{{ url_for('import_data') }}">
-          <button type="submit" class="btn btn-outline-secondary w-100">
-            CSV Daten einlesen
-          </button>
-        </form>
+        <div class="card shadow-sm">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">CSV-Verarbeitung</h2>
+          </div>
+          <div class="card-body">
+            <form method="post" action="{{ url_for('reload_categories') }}" class="mb-2">
+              <button type="submit" class="btn btn-outline-secondary w-100">
+                Kategorien neu laden
+              </button>
+            </form>
+            <form method="post" action="{{ url_for('import_data') }}">
+              <button type="submit" class="btn btn-outline-secondary w-100">
+                CSV Daten einlesen
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </div>
   <div class="tab-pane fade {% if active_tab == 'konten' %}show active{% endif %}" id="konten-pane" role="tabpanel" aria-labelledby="konten-tab">
     <div class="row g-4">
       <div class="col-12 col-lg-5">
-        <h2 class="h5 mb-3">
-          {% if edit_konto %}Konto bearbeiten{% else %}Neues Konto anlegen{% endif %}
-        </h2>
-        <form method="post">
-          {% if edit_konto %}
-            <input type="hidden" name="konto_id" value="{{ edit_konto.id }}">
-          {% endif %}
-          <div class="mb-3">
-            <label for="name" class="form-label">Name</label>
-            <input type="text" class="form-control" id="name" name="name"
-                   value="{{ edit_konto.name if edit_konto else '' }}"
-                   placeholder="z.B. Girokonto ING" required>
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">
+              {% if edit_konto %}Konto bearbeiten{% else %}Neues Konto anlegen{% endif %}
+            </h2>
           </div>
-          <div class="mb-3">
-            <label for="beschreibung" class="form-label">Beschreibung</label>
-            <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2"
-                      placeholder="z.B. Hauptkonto Haushalt">{{ edit_konto.beschreibung if edit_konto else '' }}</textarea>
+          <div class="card-body">
+            <form method="post">
+              {% if edit_konto %}
+                <input type="hidden" name="konto_id" value="{{ edit_konto.id }}">
+              {% endif %}
+              <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input type="text" class="form-control" id="name" name="name"
+                       value="{{ edit_konto.name if edit_konto else '' }}"
+                       placeholder="z.B. Girokonto ING" required>
+              </div>
+              <div class="mb-3">
+                <label for="beschreibung" class="form-label">Beschreibung</label>
+                <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2"
+                          placeholder="z.B. Hauptkonto Haushalt">{{ edit_konto.beschreibung if edit_konto else '' }}</textarea>
+              </div>
+              <div class="mb-3">
+                <label for="iban" class="form-label">IBAN</label>
+                <input type="text" class="form-control" id="iban" name="iban"
+                       value="{{ edit_konto.iban if edit_konto else '' }}"
+                       placeholder="z.B. DE00 1234 5678 9000 0000 00">
+              </div>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                  {% if edit_konto %}Konto aktualisieren{% else %}Konto speichern{% endif %}
+                </button>
+                {% if edit_konto %}
+                  <a href="{{ url_for('settings', tab='konten') }}" class="btn btn-outline-secondary">Abbrechen</a>
+                {% endif %}
+              </div>
+            </form>
           </div>
-          <div class="mb-3">
-            <label for="iban" class="form-label">IBAN</label>
-            <input type="text" class="form-control" id="iban" name="iban"
-                   value="{{ edit_konto.iban if edit_konto else '' }}"
-                   placeholder="z.B. DE00 1234 5678 9000 0000 00">
-          </div>
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">
-              {% if edit_konto %}Konto aktualisieren{% else %}Konto speichern{% endif %}
-            </button>
-            {% if edit_konto %}
-              <a href="{{ url_for('settings', tab='konten') }}" class="btn btn-outline-secondary">Abbrechen</a>
-            {% endif %}
-          </div>
-        </form>
+        </div>
       </div>
 
       <div class="col-12 col-lg-7">
-        <h2 class="h5 mb-3">Vorhandene Konten</h2>
-        {% if konten %}
-        <div class="table-responsive">
-          <table class="table table-sm table-striped align-middle">
-            <thead class="table-light">
-              <tr>
-                <th style="width: 25%;">Name</th>
-                <th style="width: 30%;">IBAN</th>
-                <th style="width: 10%;" class="text-center">Aktion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for k in konten %}
-              <tr>
-                <td>{{ k.name }}</td>
-                <td>{{ k.iban }}</td>
-                <td class="text-center">
-                  <div class="d-inline-flex gap-1">
-                    <a href="{{ url_for('settings', edit_id=k.id, tab='konten') }}"
-                       class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
-                       style="width: 28px; height: 28px; padding: 0;"
-                       title="Konto bearbeiten">
-                      <!-- Stift-Icon wie bisher -->
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                           stroke="currentColor" stroke-width="2"
-                           stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                      </svg>
-                    </a>
-              
-                    <form method="post" style="display:inline;"
-                          onsubmit="return confirm('Konto wirklich löschen? Es könnte in Buchungen verwendet werden.');">
-                      <input type="hidden" name="form_type" value="konto_delete">
-                      <input type="hidden" name="konto_id" value="{{ k.id }}">
-                      <button type="submit"
-                              class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
-                              style="width: 28px; height: 28px; padding: 0;"
-                              title="Konto löschen">
-                        <!-- Mülleimer-Icon im gleichen Line-Style -->
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                          <path d="M10 11v6"></path>
-                          <path d="M14 11v6"></path>
-                          <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">Vorhandene Konten</h2>
+          </div>
+          <div class="card-body">
+            {% if konten %}
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 25%;">Name</th>
+                    <th style="width: 30%;">IBAN</th>
+                    <th style="width: 10%;" class="text-center">Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for k in konten %}
+                  <tr>
+                    <td>{{ k.name }}</td>
+                    <td>{{ k.iban }}</td>
+                    <td class="text-center">
+                      <div class="d-inline-flex gap-1">
+                        <a href="{{ url_for('settings', edit_id=k.id, tab='konten') }}"
+                           class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
+                           style="width: 28px; height: 28px; padding: 0;"
+                           title="Konto bearbeiten">
+                          <!-- Stift-Icon wie bisher -->
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2"
+                               stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                        </a>
+                
+                        <form method="post" style="display:inline;"
+                              onsubmit="return confirm('Konto wirklich löschen? Es könnte in Buchungen verwendet werden.');">
+                          <input type="hidden" name="form_type" value="konto_delete">
+                          <input type="hidden" name="konto_id" value="{{ k.id }}">
+                          <button type="submit"
+                                  class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
+                                  style="width: 28px; height: 28px; padding: 0;"
+                                  title="Konto löschen">
+                            <!-- Mülleimer-Icon im gleichen Line-Style -->
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                              <path d="M10 11v6"></path>
+                              <path d="M14 11v6"></path>
+                              <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">Noch keine Konten angelegt.</p>
+            {% endif %}
+          </div>
         </div>
-        {% else %}
-        <p class="text-muted">Noch keine Konten angelegt.</p>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -182,190 +206,214 @@
     <div class="row g-4">
       <!-- Stammdaten Kategorie (Tabelle category) -->
       <div class="col-12">
-        <h2 class="h6 text-uppercase text-muted mb-2">Kategorien (Stammdaten)</h2>
-        <form method="post" class="mb-3">
-          <input type="hidden" name="form_type" value="category_master">
-          <div class="mb-2">
-            <label for="new_category_name" class="form-label mb-1">Neue Kategorie</label>
-            <input type="text"
-                   class="form-control form-control-sm"
-                   id="new_category_name"
-                   name="category_name"
-                   placeholder="z.B. Supermarkt, Miete, Gehalt"
-                   required>
+        <div class="card shadow-sm">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 text-uppercase text-muted">Kategorien (Stammdaten)</h2>
           </div>
-          <button type="submit" class="btn btn-sm btn-outline-primary">
-            Kategorie hinzufügen
-          </button>
-        </form>
-        <div class="border-top pt-2">
-          {% if categories_master %}
-            <div class="small text-muted mb-1">Vorhandene Kategorien:</div>
-            <div>
-              {% for c in categories_master %}
-                <span class="badge bg-light text-dark border me-1 mb-1 d-inline-flex align-items-center gap-1">
-                  {{ c.name }}
-                  <form method="post" style="display:inline;" onsubmit="return confirm('Kategorie wirklich löschen? Alle zugehörigen Zuordnungen werden ebenfalls gelöscht.');">
-                    <input type="hidden" name="form_type" value="category_delete">
-                    <input type="hidden" name="category_id" value="{{ c.id }}">
-                    <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent text-danger" style="line-height: 1; font-size: 0.75rem;" title="Kategorie löschen">
-                      ×
-                    </button>
-                  </form>
-                </span>
-              {% endfor %}
+          <div class="card-body">
+            <form method="post" class="mb-3">
+              <input type="hidden" name="form_type" value="category_master">
+              <div class="mb-2">
+                <label for="new_category_name" class="form-label mb-1">Neue Kategorie</label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       id="new_category_name"
+                       name="category_name"
+                       placeholder="z.B. Supermarkt, Miete, Gehalt"
+                       required>
+              </div>
+              <button type="submit" class="btn btn-sm btn-outline-primary">
+                Kategorie hinzufügen
+              </button>
+            </form>
+            <div class="border-top pt-2">
+              {% if categories_master %}
+                <div class="small text-muted mb-1">Vorhandene Kategorien:</div>
+                <div>
+                  {% for c in categories_master %}
+                    <span class="badge bg-light text-dark border me-1 mb-1 d-inline-flex align-items-center gap-1">
+                      {{ c.name }}
+                      <form method="post" style="display:inline;" onsubmit="return confirm('Kategorie wirklich löschen? Alle zugehörigen Zuordnungen werden ebenfalls gelöscht.');">
+                        <input type="hidden" name="form_type" value="category_delete">
+                        <input type="hidden" name="category_id" value="{{ c.id }}">
+                        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent text-danger" style="line-height: 1; font-size: 0.75rem;" title="Kategorie löschen">
+                          ×
+                        </button>
+                      </form>
+                    </span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-muted small mb-0">Noch keine Kategorien in der Stammtabelle angelegt.</p>
+              {% endif %}
             </div>
-          {% else %}
-            <p class="text-muted small mb-0">Noch keine Kategorien in der Stammtabelle angelegt.</p>
-          {% endif %}
+          </div>
         </div>
       </div>
 
       <!-- Zuordnungen Kategorie & Schlüsselwort (keyword_category) -->
       <div class="col-12 col-lg-5">
-        <h2 class="h5 mb-3">
-          {% if edit_mapping %}Zuordnung bearbeiten{% else %}Neue Zuordnung anlegen{% endif %}
-        </h2>
-        <form method="post">
-          <input type="hidden" name="form_type" value="keyword">
-          {% if edit_mapping %}
-            <input type="hidden" name="mapping_id" value="{{ edit_mapping.id }}">
-          {% endif %}
-          <div class="mb-3">
-            <label for="category_name" class="form-label">Kategorie</label>
-            <select class="form-select" id="category_name" name="category_name" required>
-              <option value="">Bitte wählen</option>
-              {% for c in categories_master %}
-                <option value="{{ c.name }}" {% if edit_mapping and edit_mapping.kategorie == c.name %}selected{% endif %}>
-                  {{ c.name }}
-                </option>
-              {% endfor %}
-            </select>
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">
+              {% if edit_mapping %}Zuordnung bearbeiten{% else %}Neue Zuordnung anlegen{% endif %}
+            </h2>
           </div>
-          <div class="mb-3">
-            <label for="keyword" class="form-label">Schlüsselwort</label>
-            <input type="text"
-                   class="form-control"
-                   id="keyword"
-                   name="keyword"
-                   value="{{ edit_mapping.schluesselwort if edit_mapping else '' }}"
-                   placeholder="z.B. EDEKA, AMAZON, PAYPAL"
-                   required>
+          <div class="card-body">
+            <form method="post">
+              <input type="hidden" name="form_type" value="keyword">
+              {% if edit_mapping %}
+                <input type="hidden" name="mapping_id" value="{{ edit_mapping.id }}">
+              {% endif %}
+              <div class="mb-3">
+                <label for="category_name" class="form-label">Kategorie</label>
+                <select class="form-select" id="category_name" name="category_name" required>
+                  <option value="">Bitte wählen</option>
+                  {% for c in categories_master %}
+                    <option value="{{ c.name }}" {% if edit_mapping and edit_mapping.kategorie == c.name %}selected{% endif %}>
+                      {{ c.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="keyword" class="form-label">Schlüsselwort</label>
+                <input type="text"
+                       class="form-control"
+                       id="keyword"
+                       name="keyword"
+                       value="{{ edit_mapping.schluesselwort if edit_mapping else '' }}"
+                       placeholder="z.B. EDEKA, AMAZON, PAYPAL"
+                       required>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                {% if edit_mapping %}Zuordnung aktualisieren{% else %}Zuordnung speichern{% endif %}
+              </button>
+              {% if edit_mapping %}
+                <a href="{{ url_for('settings', tab='keywords') }}" class="btn btn-outline-secondary ms-2">Abbrechen</a>
+              {% endif %}
+            </form>
           </div>
-          <button type="submit" class="btn btn-primary">
-            {% if edit_mapping %}Zuordnung aktualisieren{% else %}Zuordnung speichern{% endif %}
-          </button>
-          {% if edit_mapping %}
-            <a href="{{ url_for('settings', tab='keywords') }}" class="btn btn-outline-secondary ms-2">Abbrechen</a>
-          {% endif %}
-        </form>
+        </div>
       </div>
 
       <div class="col-12 col-lg-7">
-        <h2 class="h5 mb-3">Bestehende Zuordnungen</h2>
-        {% if keyword_mappings %}
-        <div class="table-responsive">
-          <table class="table table-sm table-striped align-middle">
-            <thead class="table-light">
-              <tr>
-                <th style="width: 30%;">Kategorie</th>
-                <th style="width: 40%;">Schlüsselwort</th>
-                <th style="width: 15%;" class="text-center">Aktion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for m in keyword_mappings %}
-              <tr>
-                <td>{{ m.kategorie }}</td>
-                <td>{{ m.schluesselwort }}</td>
-                <td class="text-center">
-                  <div class="d-inline-flex gap-1">
-                    <a href="{{ url_for('settings', tab='keywords', mapping_id=m.id) }}"
-                       class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
-                       style="width: 28px; height: 28px; padding: 0;"
-                       title="Zuordnung bearbeiten">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                           stroke="currentColor" stroke-width="2"
-                           stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                      </svg>
-                    </a>
-                    <form method="post" style="display:inline;"
-                          onsubmit="return confirm('Zuordnung wirklich löschen?');">
-                      <input type="hidden" name="form_type" value="keyword_delete">
-                      <input type="hidden" name="mapping_id" value="{{ m.id }}">
-                      <button type="submit"
-                              class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
-                              style="width: 28px; height: 28px; padding: 0;"
-                              title="Zuordnung löschen">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                          <path d="M10 11v6"></path>
-                          <path d="M14 11v6"></path>
-                          <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">Bestehende Zuordnungen</h2>
+          </div>
+          <div class="card-body">
+            {% if keyword_mappings %}
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 30%;">Kategorie</th>
+                    <th style="width: 40%;">Schlüsselwort</th>
+                    <th style="width: 15%;" class="text-center">Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for m in keyword_mappings %}
+                  <tr>
+                    <td>{{ m.kategorie }}</td>
+                    <td>{{ m.schluesselwort }}</td>
+                    <td class="text-center">
+                      <div class="d-inline-flex gap-1">
+                        <a href="{{ url_for('settings', tab='keywords', mapping_id=m.id) }}"
+                           class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
+                           style="width: 28px; height: 28px; padding: 0;"
+                           title="Zuordnung bearbeiten">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2"
+                               stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                        </a>
+                        <form method="post" style="display:inline;"
+                              onsubmit="return confirm('Zuordnung wirklich löschen?');">
+                          <input type="hidden" name="form_type" value="keyword_delete">
+                          <input type="hidden" name="mapping_id" value="{{ m.id }}">
+                          <button type="submit"
+                                  class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
+                                  style="width: 28px; height: 28px; padding: 0;"
+                                  title="Zuordnung löschen">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                              <path d="M10 11v6"></path>
+                              <path d="M14 11v6"></path>
+                              <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">Noch keine Zuordnungen angelegt.</p>
+            {% endif %}
+          </div>
         </div>
-        {% else %}
-        <p class="text-muted">Noch keine Zuordnungen angelegt.</p>
-        {% endif %}
       </div>
     </div>
   </div>
   <div class="tab-pane fade {% if active_tab == 'paperless' %}show active{% endif %}" id="paperless-pane" role="tabpanel" aria-labelledby="paperless-tab">
     <div class="row g-4">
       <div class="col-12 col-lg-6">
-        <h2 class="h5 mb-3">Paperless-Einstellungen</h2>
-        <form method="post">
-          <input type="hidden" name="form_type" value="paperless">
-          <div class="mb-3">
-            <label for="paperless_ip" class="form-label">Paperless IP-Adresse</label>
-            <input type="text"
-                   class="form-control"
-                   id="paperless_ip"
-                   name="paperless_ip"
-                   value="{{ paperless_config.ip if paperless_config else '' }}"
-                   placeholder="z.B. http://192.168.1.100:8000 oder https://paperless.example.com"
-                   required>
-            <div class="form-text">Vollständige URL oder IP-Adresse mit Port (z.B. http://192.168.1.100:8000)</div>
+        <div class="card shadow-sm">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">Paperless-Einstellungen</h2>
           </div>
-          <div class="mb-3">
-            <label for="paperless_token" class="form-label">API-Token</label>
-            <input type="password"
-                   class="form-control"
-                   id="paperless_token"
-                   name="paperless_token"
-                   value="{{ paperless_config.token if paperless_config else '' }}"
-                   placeholder="Ihr Paperless API-Token"
-                   required>
-            <div class="form-text">Der API-Token aus den Paperless-Einstellungen</div>
+          <div class="card-body">
+            <form method="post">
+              <input type="hidden" name="form_type" value="paperless">
+              <div class="mb-3">
+                <label for="paperless_ip" class="form-label">Paperless IP-Adresse</label>
+                <input type="text"
+                       class="form-control"
+                       id="paperless_ip"
+                       name="paperless_ip"
+                       value="{{ paperless_config.ip if paperless_config else '' }}"
+                       placeholder="z.B. http://192.168.1.100:8000 oder https://paperless.example.com"
+                       required>
+                <div class="form-text">Vollständige URL oder IP-Adresse mit Port (z.B. http://192.168.1.100:8000)</div>
+              </div>
+              <div class="mb-3">
+                <label for="paperless_token" class="form-label">API-Token</label>
+                <input type="password"
+                       class="form-control"
+                       id="paperless_token"
+                       name="paperless_token"
+                       value="{{ paperless_config.token if paperless_config else '' }}"
+                       placeholder="Ihr Paperless API-Token"
+                       required>
+                <div class="form-text">Der API-Token aus den Paperless-Einstellungen</div>
+              </div>
+              <div class="mb-3">
+                <label for="document_type_id" class="form-label">Dokumententyp ID</label>
+                <input type="text"
+                       class="form-control"
+                       id="document_type_id"
+                       name="document_type_id"
+                       value="{{ paperless_config.document_type_id if paperless_config else '' }}"
+                       placeholder="z.B. 47"
+                       required>
+                <div class="form-text">ID des Dokumententyps in Paperless</div>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                Einstellungen speichern
+              </button>
+            </form>
           </div>
-          <div class="mb-3">
-            <label for="document_type_id" class="form-label">Dokumententyp ID</label>
-            <input type="text"
-                   class="form-control"
-                   id="document_type_id"
-                   name="document_type_id"
-                   value="{{ paperless_config.document_type_id if paperless_config else '' }}"
-                   placeholder="z.B. 47"
-                   required>
-            <div class="form-text">ID des Dokumententyps in Paperless</div>
-          </div>
-          <button type="submit" class="btn btn-primary">
-            Einstellungen speichern
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   </div>
