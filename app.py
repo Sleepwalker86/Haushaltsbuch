@@ -907,8 +907,8 @@ def settings():
         pass
 
     active_tab = request.args.get("tab")
-    if active_tab not in ("upload", "konten", "keywords", "paperless"):
-        active_tab = "konten" if edit_konto else "upload"
+    if active_tab not in ("konten", "keywords", "paperless"):
+        active_tab = "konten"
 
     return render_template(
         "settings.html",
@@ -920,6 +920,12 @@ def settings():
         paperless_config=paperless_config,
         active_tab=active_tab,
     )
+
+
+@app.route("/upload", methods=["GET"])
+def upload():
+    """Separate Seite für CSV-Upload und -Verarbeitung."""
+    return render_template("upload_data.html")
 
 
 @app.route("/paperless", methods=["GET", "POST"])
@@ -966,12 +972,12 @@ def upload_csv():
     file = request.files.get("csv_file")
     if not file or file.filename == "":
         flash("Bitte eine CSV-Datei auswählen.", "error")
-        return redirect(url_for("settings"))
+        return redirect(url_for("upload"))
 
     filename = os.path.basename(file.filename)
     if not filename.lower().endswith(".csv"):
         flash("Nur CSV-Dateien sind erlaubt.", "error")
-        return redirect(url_for("settings"))
+        return redirect(url_for("upload"))
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
     import_dir = os.path.join(base_dir, "import")
@@ -984,7 +990,7 @@ def upload_csv():
     except Exception as exc:
         flash(f"CSV konnte nicht hochgeladen werden: {exc}", "error")
 
-    return redirect(url_for("settings"))
+    return redirect(url_for("upload"))
 
 
 if __name__ == "__main__":

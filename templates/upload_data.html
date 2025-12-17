@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">CSV Upload & Import</h1>
+
+{% if get_flashed_messages() %}
+  <div class="mb-3">
+    {% for msg in get_flashed_messages(with_categories=true) %}
+      {% set cat, text = msg %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+        {{ text }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header py-2">
+        <h2 class="m-0 h6 fw-bold">CSV-Datei hochladen</h2>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data">
+          <div class="input-group">
+            <input type="file" class="form-control" name="csv_file" accept=".csv" required>
+            <button type="submit" class="btn btn-outline-success">
+              CSV hochladen
+            </button>
+          </div>
+        </form>
+        <p class="text-muted small mt-2 mb-0">
+          Die Datei wird im Ordner <code>import/</code> abgelegt und beim nächsten Import verarbeitet.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header py-2">
+        <h2 class="m-0 h6 fw-bold">CSV-Verarbeitung</h2>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small">
+          Der Import läuft automatisch alle 10 Minuten über einen Timer. Hier kannst du ihn bei Bedarf manuell anstoßen.
+        </p>
+        <form method="post" action="{{ url_for('reload_categories') }}" class="mb-2">
+          <button type="submit" class="btn btn-outline-secondary w-100">
+            Kategorien neu laden
+          </button>
+        </form>
+        <form method="post" action="{{ url_for('import_data') }}">
+          <button type="submit" class="btn btn-outline-secondary w-100">
+            CSV Daten einlesen
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

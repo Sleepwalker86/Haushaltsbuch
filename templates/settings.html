@@ -16,13 +16,6 @@
 
 <ul class="nav nav-tabs mb-3" id="settingsTabs" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link {% if active_tab == 'upload' %}active{% endif %}" id="upload-tab"
-            data-bs-toggle="tab" data-bs-target="#upload-pane" type="button" role="tab"
-            aria-controls="upload-pane" aria-selected="{% if active_tab == 'upload' %}true{% else %}false{% endif %}">
-      CSV Upload & Import
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
     <button class="nav-link {% if active_tab == 'konten' %}active{% endif %}" id="konten-tab"
             data-bs-toggle="tab" data-bs-target="#konten-pane" type="button" role="tab"
             aria-controls="konten-pane" aria-selected="{% if active_tab == 'konten' %}true{% else %}false{% endif %}">
@@ -46,47 +39,6 @@
 </ul>
 
 <div class="tab-content" id="settingsTabsContent">
-  <div class="tab-pane fade {% if active_tab == 'upload' %}show active{% endif %}" id="upload-pane" role="tabpanel" aria-labelledby="upload-tab">
-    <div class="row g-3">
-      <div class="col-12">
-        <div class="card shadow-sm mb-3">
-          <div class="card-header py-2">
-            <h2 class="m-0 h6 fw-bold">CSV-Datei hochladen</h2>
-          </div>
-          <div class="card-body">
-            <form method="post" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data">
-              <div class="input-group">
-                <input type="file" class="form-control" name="csv_file" accept=".csv" required>
-                <button type="submit" class="btn btn-outline-success">
-                  CSV hochladen
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12">
-        <div class="card shadow-sm">
-          <div class="card-header py-2">
-            <h2 class="m-0 h6 fw-bold">CSV-Verarbeitung</h2>
-          </div>
-          <div class="card-body">
-            <form method="post" action="{{ url_for('reload_categories') }}" class="mb-2">
-              <button type="submit" class="btn btn-outline-secondary w-100">
-                Kategorien neu laden
-              </button>
-            </form>
-            <form method="post" action="{{ url_for('import_data') }}">
-              <button type="submit" class="btn btn-outline-secondary w-100">
-                CSV Daten einlesen
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
   <div class="tab-pane fade {% if active_tab == 'konten' %}show active{% endif %}" id="konten-pane" role="tabpanel" aria-labelledby="konten-tab">
     <div class="row g-4">
       <div class="col-12 col-lg-5">
