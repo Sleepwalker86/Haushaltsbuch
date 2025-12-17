@@ -23,12 +23,12 @@
   <div class="card-body">
     <form method="post">
       <div class="row g-3">
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
           <label for="datum" class="form-label">Datum</label>
           <input type="date" class="form-control" id="datum" name="datum" required>
         </div>
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
           <label for="typ" class="form-label">Typ</label>
           <select class="form-select" id="typ" name="typ" required>
             <option value="Ausgaben" selected>Ausgaben</option>
@@ -36,7 +36,7 @@
           </select>
         </div>
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
           <label for="konto" class="form-label">Konto</label>
           <select class="form-select" id="konto" name="konto" required>
             <option value="">Bitte wählen</option>
@@ -46,7 +46,7 @@
           </select>
         </div>
 
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-3">
           <label for="kategorie" class="form-label">Kategorie</label>
           <select class="form-select" id="kategorie" name="kategorie" required>
             <option value="">Bitte wählen</option>
@@ -61,14 +61,14 @@
           <input type="text" class="form-control" id="kategorie2" name="kategorie2" placeholder="z.B. Supermarkt, Barzahlung">
         </div>
 
+        <div class="col-12 col-md-6">
+          <label for="beschreibung" class="form-label">Beschreibung</label>
+          <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2" placeholder="z.B. Barzahlung Supermarkt" required></textarea>
+        </div>
+
         <div class="col-12 col-md-4">
           <label for="betrag" class="form-label">Betrag</label>
           <input type="text" class="form-control" id="betrag" name="betrag" inputmode="decimal" placeholder="z.B. 25,50" required>
-        </div>
-
-        <div class="col-12 col-md-8">
-          <label for="beschreibung" class="form-label">Beschreibung</label>
-          <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2" placeholder="z.B. Barzahlung Supermarkt" required></textarea>
         </div>
       </div>
 

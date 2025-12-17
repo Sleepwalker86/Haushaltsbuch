@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="mb-0">Alle Buchungen</h1>
+</div>
+
+{% if get_flashed_messages() %}
+  <div class="mb-3">
+    {% for msg in get_flashed_messages(with_categories=true) %}
+      {% set cat, text = msg %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+        {{ text }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="mb-3">
+  <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+    Filter ein-/ausklappen
+  </button>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="collapse d-md-block" id="filterCollapse">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Buchungen filtern</h3>
+      </div>
+      <div class="card-body">
+        <form method="get" class="row g-3 mb-4 align-items-end">
+          <div class="col-6 col-md-3">
+            <label for="year" class="form-label">Jahr</label>
+            <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Monat(e)</label>
+            <div class="row g-2">
+              {% for m, name in [
+                (1,'Jan'),(2,'Feb'),(3,'Mär'),(4,'Apr'),
+                (5,'Mai'),(6,'Jun'),(7,'Jul'),(8,'Aug'),
+                (9,'Sep'),(10,'Okt'),(11,'Nov'),(12,'Dez')
+              ] %}
+              <div class="col-6 col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         name="month"
+                         value="{{ m }}"
+                         id="month{{ m }}"
+                         {% if m|string in (selected_months or []) %}checked{% endif %}>
+                  <label class="form-check-label" for="month{{ m }}">
+                    {{ name }}
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="konto" class="form-label">Konto</label>
+            <select class="form-select" id="konto" name="konto">
+              <option value="">Alle Konten</option>
+              {% for k in konten %}
+                <option value="{{ k.iban }}" {% if k.iban == konto %}selected{% endif %}>
+                  {{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="kategorie_filter" class="form-label">Kategorie</label>
+            <select class="form-select" id="kategorie_filter" name="kategorie_filter">
+              <option value="">Alle Kategorien</option>
+              {% for kat in kategorien %}
+                <option value="{{ kat }}" {% if kat == kategorie_filter %}selected{% endif %}>
+                  {{ kat }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="kategorie2_filter" class="form-label">Unterkategorie enthält</label>
+            <input type="text" class="form-control" id="kategorie2_filter" name="kategorie2_filter"
+                  value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
+          </div>
+          <div class="col-6 col-md-3">
+            <button type="submit" class="btn btn-primary me-2">Filtern</button>
+            <a href="{{ url_for('buchungen') }}" class="text-muted text-decoration-none">Filter löschen</a>
+          </div>
+          <input type="hidden" name="page" value="1">
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="h5 mb-0">Buchungen ({{ total_buchungen }} Einträge, {{ total_pages }} Seite(n))</h3>
+  </div>
+  
+  {% if buchungen %}
+  <div class="table-responsive small">
+    <table class="table table-striped table-hover">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 10%;">Datum</th>
+          <th class="d-none d-md-table-cell" style="width: 10%;">Konto</th>
+          <th class="d-none d-md-table-cell" style="width: 10%;">Art</th>
+          <th style="width: 20%;">Beschreibung</th>
+          <th style="width: 12%;">Kategorie</th>
+          <th style="width: 12%;">Unterkategorie</th>
+          <th class="text-end" style="width: 12%;">Soll</th>
+          <th class="text-end" style="width: 12%;">Haben</th>
+          <th class="text-center" style="width: 10%;">Aktion</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in buchungen %}
+        <tr>
+          <td>{{ b.datum.strftime('%d.%m.%Y') if b.datum else '' }}</td>
+          <td class="d-none d-md-table-cell" title="{{ b.konto or '-' }}">
+            {% if b.konto and b.konto|length > 4 %}
+              ...{{ b.konto[-4:] }}
+            {% else %}
+              {{ b.konto or '-' }}
+            {% endif %}
+          </td>
+          <td class="d-none d-md-table-cell">{{ b.art or '-' }}</td>
+          <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ b.beschreibung }}">{{ b.beschreibung }}</td>
+          <td>{{ b.kategorie or '-' }}</td>
+          <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+              title="{{ b.kategorie2 }}">
+            {{ b.kategorie2 if b.kategorie2 else '-' }}
+          </td>
+          <td class="text-end {% if b.soll > 0 %}text-danger{% else %}text-muted{% endif %}">
+            {% if b.soll > 0 %}{{ "%.2f"|format(b.soll) }} €{% else %}-{% endif %}
+          </td>
+          <td class="text-end {% if b.haben > 0 %}text-success{% else %}text-muted{% endif %}">
+            {% if b.haben > 0 %}{{ "%.2f"|format(b.haben) }} €{% else %}-{% endif %}
+          </td>
+          <td class="text-center">
+            <div class="d-inline-flex gap-1">
+              {% set edit_query = 'year=' + year|string + '&page=' + current_page|string %}
+              {% for m in (selected_months or []) %}
+                {% set edit_query = edit_query + '&month=' + m %}
+              {% endfor %}
+              {% if konto %}{% set edit_query = edit_query + '&konto=' + konto %}{% endif %}
+              {% if kategorie_filter %}{% set edit_query = edit_query + '&kategorie_filter=' + kategorie_filter %}{% endif %}
+              {% if kategorie2_filter %}{% set edit_query = edit_query + '&kategorie2_filter=' + kategorie2_filter %}{% endif %}
+              
+              <a href="{{ url_for('edit_buchung', buchung_id=b.id) }}?{{ edit_query }}" 
+                 class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
+                 style="width: 28px; height: 28px; padding: 0;"
+                 title="Bearbeiten">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </a>
+              
+              <form method="post" 
+                    action="{{ url_for('delete_buchung', buchung_id=b.id) }}?{{ edit_query }}"
+                    style="display:inline;"
+                    onsubmit="return confirm('Buchung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
+                <button type="submit"
+                        class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
+                        style="width: 28px; height: 28px; padding: 0;"
+                        title="Löschen">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    <path d="M10 11v6"></path>
+                    <path d="M14 11v6"></path>
+                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  {% if total_pages > 1 %}
+  <nav aria-label="Seitennavigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% set month_params = [] %}
+      {% for m in (selected_months or []) %}
+        {% set _ = month_params.append('month=' + m) %}
+      {% endfor %}
+      {% set month_query = month_params|join('&') %}
+      {% set base_query = 'year=' + year|string + (('&' + month_query) if month_query else '') + (('&konto=' + konto) if konto else '') + (('&kategorie_filter=' + kategorie_filter) if kategorie_filter else '') + (('&kategorie2_filter=' + kategorie2_filter) if kategorie2_filter else '') %}
+      
+      {% if current_page > 1 %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('buchungen') }}?{{ base_query }}&page={{ current_page-1 }}">← Zurück</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">← Zurück</span>
+      </li>
+      {% endif %}
+      
+      <li class="page-item active">
+        <span class="page-link">Seite {{ current_page }} von {{ total_pages }}</span>
+      </li>
+      
+      {% if current_page < total_pages %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('buchungen') }}?{{ base_query }}&page={{ current_page+1 }}">Weiter →</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">Weiter →</span>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+  {% else %}
+  <p class="text-muted mt-3">Keine Buchungen gefunden.</p>
+  {% endif %}
+</div>
+{% endblock %}
+

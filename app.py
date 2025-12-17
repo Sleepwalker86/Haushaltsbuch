@@ -13,6 +13,17 @@ app = Flask(__name__)
 app.secret_key = "change-me-please"  # für Flash-Messages
 
 
+@app.context_processor
+def inject_config():
+    """Macht Config-Variablen in allen Templates verfügbar."""
+    try:
+        config = load_config()
+        paperless_enabled = config.get("PAPERLESS", {}).get("enabled", False)
+    except Exception:
+        paperless_enabled = False
+    return {"paperless_enabled": paperless_enabled}
+
+
 def load_config():
     """Lädt die gesamte config.json."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -632,7 +643,22 @@ def edit_buchung(buchung_id):
                 cur.close()
 
             flash("Buchung aktualisiert.", "success")
-            return redirect(url_for("dashboard", year=request.args.get("year"), month=request.args.get("month"), page=request.args.get("page", 1)))
+            # Prüfen, ob wir von buchungen-Seite kommen
+            referer = request.headers.get("Referer", "")
+            if "buchungen" in referer:
+                return redirect(
+                    url_for(
+                        "buchungen",
+                        year=request.args.get("year"),
+                        month=request.args.getlist("month"),
+                        page=request.args.get("page", 1),
+                        konto=request.args.get("konto", ""),
+                        kategorie_filter=request.args.get("kategorie_filter", ""),
+                        kategorie2_filter=request.args.get("kategorie2_filter", ""),
+                    )
+                )
+            else:
+                return redirect(url_for("dashboard", year=request.args.get("year"), month=request.args.getlist("month"), page=request.args.get("page", 1)))
         except Exception as exc:
             flash(f"Fehler: {exc}", "error")
 
@@ -678,14 +704,29 @@ def delete_buchung(buchung_id):
     except Exception as exc:
         flash(f"Buchung konnte nicht gelöscht werden: {exc}", "error")
 
-    return redirect(
-        url_for(
-            "dashboard",
-            year=request.args.get("year"),
-            month=request.args.get("month"),
-            page=request.args.get("page", 1),
+    # Prüfen, ob wir von buchungen-Seite kommen
+    referer = request.headers.get("Referer", "")
+    if "buchungen" in referer:
+        return redirect(
+            url_for(
+                "buchungen",
+                year=request.args.get("year"),
+                month=request.args.getlist("month"),
+                page=request.args.get("page", 1),
+                konto=request.args.get("konto", ""),
+                kategorie_filter=request.args.get("kategorie_filter", ""),
+                kategorie2_filter=request.args.get("kategorie2_filter", ""),
+            )
         )
-    )
+    else:
+        return redirect(
+            url_for(
+                "dashboard",
+                year=request.args.get("year"),
+                month=request.args.getlist("month"),
+                page=request.args.get("page", 1),
+            )
+        )
 
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
@@ -880,6 +921,7 @@ def settings():
         # Paperless-Einstellungen
         # ---------------------------------
         elif form_type == "paperless":
+            paperless_enabled = request.form.get("paperless_enabled") == "on"
             paperless_ip = request.form.get("paperless_ip", "").strip()
             paperless_token = request.form.get("paperless_token", "").strip()
             document_type_id = request.form.get("document_type_id", "").strip()
@@ -887,6 +929,7 @@ def settings():
                 config = load_config()
                 if "PAPERLESS" not in config:
                     config["PAPERLESS"] = {}
+                config["PAPERLESS"]["enabled"] = paperless_enabled
                 config["PAPERLESS"]["ip"] = paperless_ip
                 config["PAPERLESS"]["token"] = paperless_token
                 config["PAPERLESS"]["document_type_id"] = document_type_id
@@ -956,11 +999,12 @@ def settings():
         pass
 
     # Paperless-Einstellungen laden
-    paperless_config = {"ip": "", "token": ""}
+    paperless_config = {"enabled": False, "ip": "", "token": "", "document_type_id": ""}
     try:
         config = load_config()
         if "PAPERLESS" in config:
             paperless_config = {
+                "enabled": config["PAPERLESS"].get("enabled", False),
                 "ip": config["PAPERLESS"].get("ip", ""),
                 "token": config["PAPERLESS"].get("token", ""),
                 "document_type_id": config["PAPERLESS"].get("document_type_id", ""),
@@ -1266,6 +1310,66 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
         "deltas": deltas,
         "deltas_pct": deltas_pct,
     }
+
+
+@app.route("/buchungen")
+def buchungen():
+    """Buchungen-Seite mit erweiterten Filtern und 100 Einträgen pro Seite."""
+    today = date.today()
+    default_year = str(today.year)
+    default_month = [str(today.month)]
+    
+    year = request.args.get("year") or default_year
+    month_list = request.args.getlist("month")
+    if not month_list:
+        month = default_month
+    else:
+        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
+        if not month:
+            month = default_month
+    
+    konto = request.args.get("konto") or ""
+    kategorie_filter = request.args.get("kategorie_filter") or ""
+    kategorie2_filter = request.args.get("kategorie2_filter") or ""
+    page = int(request.args.get("page", 1))
+    
+    if year and not year.isdigit():
+        year = default_year
+    if page < 1:
+        page = 1
+
+    # 100 Buchungen pro Seite
+    buchungen_list, total_buchungen, total_pages = fetch_buchungen(
+        year,
+        month,
+        page,
+        per_page=100,
+        konto=konto or None,
+        kategorie_filter=kategorie_filter or None,
+        kategorie2_filter=kategorie2_filter or None,
+    )
+
+    kategorien = fetch_categories()
+    konten = []
+    try:
+        konten = fetch_konten_details()
+    except Exception as exc:
+        flash(f"Konten für Filter konnten nicht geladen werden (Tabelle 'konten' vorhanden?): {exc}", "error")
+
+    return render_template(
+        "buchungen.html",
+        year=year or "",
+        selected_months=month,
+        buchungen=buchungen_list,
+        current_page=page,
+        total_pages=total_pages,
+        total_buchungen=total_buchungen,
+        kategorien=kategorien,
+        konten=konten,
+        konto=konto,
+        kategorie_filter=kategorie_filter,
+        kategorie2_filter=kategorie2_filter,
+    )
 
 
 @app.route("/analysis")

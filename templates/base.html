@@ -120,12 +120,18 @@
           </li>
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
-               href="{{ url_for('index') }}">Buchung</a>
+               href="{{ url_for('index') }}">Erfassen</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'buchungen' %}active{% endif %}"
+               href="{{ url_for('buchungen') }}">Buchungen</a>
+          </li>
+          {% if paperless_enabled %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'paperless' %}active{% endif %}"
                href="{{ url_for('paperless') }}">Paperless</a>
           </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'upload' %}active{% endif %}"
                href="{{ url_for('upload') }}">Upload</a>
