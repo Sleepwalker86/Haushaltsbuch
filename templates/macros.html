@@ -1,0 +1,91 @@
+{% macro filter_section(filter_url, year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter, show_yoy=false, compare_yoy=false) %}
+<div class="mb-3">
+  <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+    Filter ein-/ausklappen
+  </button>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="collapse d-md-block" id="filterCollapse">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Filter</h3>
+      </div>
+      <div class="card-body">
+        <form method="get" class="row g-3 mb-4 align-items-end" action="{{ filter_url }}">
+          <div class="col-6 col-md-2">
+            <label for="year" class="form-label">Jahr</label>
+            <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
+          </div>
+          <div class="col-12 col-md-10">
+            <label class="form-label">Monat(e)</label>
+            <div class="row g-2">
+              {% for m, name in [
+                (1,'Jan'),(2,'Feb'),(3,'Mär'),(4,'Apr'),
+                (5,'Mai'),(6,'Jun'),(7,'Jul'),(8,'Aug'),
+                (9,'Sep'),(10,'Okt'),(11,'Nov'),(12,'Dez')
+              ] %}
+              <div class="col-2 col-md-2">
+                <div class="form-check">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         name="month"
+                         value="{{ m }}"
+                         id="month{{ m }}"
+                         {% if m|string in (selected_months or []) %}checked{% endif %}>
+                  <label class="form-check-label" for="month{{ m }}">
+                    {{ name }}
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="konto" class="form-label">Konto</label>
+            <select class="form-select" id="konto" name="konto">
+              <option value="">Alle Konten</option>
+              {% for k in konten %}
+                <option value="{{ k.iban }}" {% if k.iban == konto %}selected{% endif %}>
+                  {{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="kategorie_filter" class="form-label">Kategorie</label>
+            <select class="form-select" id="kategorie_filter" name="kategorie_filter">
+              <option value="">Alle Kategorien</option>
+              {% for kat in kategorien %}
+                <option value="{{ kat }}" {% if kat == kategorie_filter %}selected{% endif %}>
+                  {{ kat }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if kategorie2_filter is not none %}
+          <div class="col-6 col-md-3">
+            <label for="kategorie2_filter" class="form-label">Unterkategorie enthält</label>
+            <input type="text" class="form-control" id="kategorie2_filter" name="kategorie2_filter"
+                   value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
+          </div>
+          {% endif %}
+          {% if show_yoy %}
+          <div class="col-12 col-md-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="compare_yoy" name="compare_yoy" value="1" {% if compare_yoy %}checked{% endif %}>
+              <label class="form-check-label" for="compare_yoy">Mit Vorjahr vergleichen</label>
+            </div>
+          </div>
+          {% endif %}
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary me-2">Filtern</button>
+            <a href="{{ filter_url }}" class="text-muted text-decoration-none">Filter löschen</a>
+          </div>
+          <input type="hidden" name="page" value="1">
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}

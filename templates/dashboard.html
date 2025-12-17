@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import filter_section %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="mb-0">Dashboard</h1>
@@ -7,8 +8,17 @@
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="card shadow-sm h-100">
-      <div class="card-header py-1">
+      <div class="card-header py-1 d-flex justify-content-between align-items-center">
         <span class="small text-muted">Aktueller Saldo (gesamt)</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="text-muted" 
+             data-bs-toggle="popover" 
+             data-bs-trigger="click"
+             data-bs-placement="top"
+             data-bs-content="Summe aller Buchungen (Haben - Soll). Zeigt den aktuellen Gesamtsaldo über alle Konten und Zeiträume hinweg."
+             style="cursor: pointer; flex-shrink: 0;">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+        </svg>
       </div>
       <div class="card-body">
         <div class="h5 mb-0">
@@ -19,8 +29,17 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="card shadow-sm h-100">
-      <div class="card-header py-1">
-        <span class="small text-muted">Einnahmen (aktueller Monat)</span>
+      <div class="card-header py-1 d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Einnahmen (akt. Monat)</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="text-muted" 
+             data-bs-toggle="popover" 
+             data-bs-trigger="click"
+             data-bs-placement="top"
+             data-bs-content="Summe aller Geldeingänge (Haben-Spalte) im ausgewählten Zeitraum. Alle Einnahmen werden addiert."
+             style="cursor: pointer; flex-shrink: 0;">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+        </svg>
       </div>
       <div class="card-body">
         <div class="h5 mb-0 text-success">
@@ -31,8 +50,17 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="card shadow-sm h-100">
-      <div class="card-header py-1">
+      <div class="card-header py-1 d-flex justify-content-between align-items-center">
         <span class="small text-muted">Ausgaben (aktueller Monat)</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="text-muted" 
+             data-bs-toggle="popover" 
+             data-bs-trigger="click"
+             data-bs-placement="top"
+             data-bs-content="Summe aller Geldausgänge (Soll-Spalte) im ausgewählten Zeitraum. Alle Ausgaben werden addiert."
+             style="cursor: pointer; flex-shrink: 0;">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+        </svg>
       </div>
       <div class="card-body">
         <div class="h5 mb-0 text-danger">
@@ -43,8 +71,17 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="card shadow-sm h-100">
-      <div class="card-header py-1">
+      <div class="card-header py-1 d-flex justify-content-between align-items-center">
         <span class="small text-muted">Cashflow</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="text-muted" 
+             data-bs-toggle="popover" 
+             data-bs-trigger="click"
+             data-bs-placement="top"
+             data-bs-content="Berechnung: Einnahmen - Ausgaben. Zeigt das verbleibende Geld nach allen Ausgaben im ausgewählten Zeitraum. Positiv = Überschuss, negativ = Defizit."
+             style="cursor: pointer; flex-shrink: 0;">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+        </svg>
       </div>
       <div class="card-body">
         <div class="h5 mb-0 {% if cashflow >= 0 %}text-success{% else %}text-danger{% endif %}">
@@ -55,84 +92,7 @@
   </div>
 </div>
 
-<div class="mb-3">
-  <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-    Filter ein-/ausklappen
-  </button>
-</div>
-<div class="row g-4 mb-4">
-  <div class="collapse d-md-block" id="filterCollapse">
-    <div class="card shadow-sm h-100">
-      <div class="card-header py-2">
-        <h3 class="m-0 h6 fw-bold">Buchungen filtern</h3>
-      </div>
-      <div class="card-body">
-        <form method="get" class="row g-3 mb-4 align-items-end">
-          <div class="col-6 col-md-3">
-            <label for="year" class="form-label">Jahr</label>
-            <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
-          </div>
-          <div class="col-12 col-md-6">
-            <label class="form-label">Monat(e)</label>
-            <div class="row g-2">
-              {% for m, name in [
-                (1,'Jan'),(2,'Feb'),(3,'Mär'),(4,'Apr'),
-                (5,'Mai'),(6,'Jun'),(7,'Jul'),(8,'Aug'),
-                (9,'Sep'),(10,'Okt'),(11,'Nov'),(12,'Dez')
-              ] %}
-              <div class="col-6 col-md-4">
-                <div class="form-check">
-                  <input class="form-check-input"
-                         type="checkbox"
-                         name="month"
-                         value="{{ m }}"
-                         id="month{{ m }}"
-                         {% if m|string in (selected_months or []) %}checked{% endif %}>
-                  <label class="form-check-label" for="month{{ m }}">
-                    {{ name }}
-                  </label>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <label for="konto" class="form-label">Konto</label>
-            <select class="form-select" id="konto" name="konto">
-              <option value="">Alle Konten</option>
-              {% for k in konten %}
-                <option value="{{ k.iban }}" {% if k.iban == konto %}selected{% endif %}>
-                  {{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-6 col-md-3">
-            <label for="kategorie_filter" class="form-label">Kategorie</label>
-            <select class="form-select" id="kategorie_filter" name="kategorie_filter">
-              <option value="">Alle Kategorien</option>
-              {% for kat in kategorien %}
-                <option value="{{ kat }}" {% if kat == kategorie_filter %}selected{% endif %}>
-                  {{ kat }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-6 col-md-3">
-            <label for="kategorie2_filter" class="form-label">Unterkategorie enthält</label>
-            <input type="text" class="form-control" id="kategorie2_filter" name="kategorie2_filter"
-                  value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
-          </div>
-          <div class="col-6 col-md-3">
-            <button type="submit" class="btn btn-primary me-2">Filtern</button>
-            <a href="{{ url_for('dashboard') }}" class="text-muted text-decoration-none">Filter löschen</a>
-          </div>
-          <input type="hidden" name="page" value="1">
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+{{ filter_section(url_for('dashboard'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter) }}
 
 <div class="row g-4 mb-4">
   <!-- Kategorien (Einnahmen/Ausgaben) -->
@@ -400,5 +360,12 @@
       scales:{ y:{ beginAtZero:true, ticks:{callback:v=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(v)}} }
     }
   );
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl);
+    });
+  });
   </script>
   {% endblock %}

@@ -10,12 +10,11 @@ from db import get_connection
 import json
 
 app = Flask(__name__)
-app.secret_key = "change-me-please"  # für Flash-Messages
+app.secret_key = "change-me-please"
 
 
 @app.context_processor
 def inject_config():
-    """Macht Config-Variablen in allen Templates verfügbar."""
     try:
         config = load_config()
         paperless_enabled = config.get("PAPERLESS", {}).get("enabled", False)
@@ -24,8 +23,64 @@ def inject_config():
     return {"paperless_enabled": paperless_enabled}
 
 
+def parse_amount(amount_str):
+    """Konvertiert Betrag-String (mit Komma/Punkt) zu Float."""
+    amount_str = amount_str.strip()
+    if "," in amount_str:
+        amount_str = amount_str.replace(".", "").replace(",", ".")
+    elif "." in amount_str:
+        parts = amount_str.split(".")
+        if len(parts) > 1 and len(parts[-1]) <= 2:
+            pass
+        else:
+            amount_str = amount_str.replace(".", "")
+    return abs(float(amount_str))
+
+
+def parse_filter_params():
+    """Extrahiert und validiert Filter-Parameter aus Request."""
+    today = date.today()
+    default_year = str(today.year)
+    default_month = [str(today.month)]
+    
+    year = request.args.get("year") or default_year
+    if year and not year.isdigit():
+        year = default_year
+    
+    month_list = request.args.getlist("month")
+    if not month_list:
+        month = default_month
+    else:
+        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
+        if not month:
+            month = default_month
+    
+    page = int(request.args.get("page", 1))
+    if page < 1:
+        page = 1
+    
+    return {
+        "year": year,
+        "month": month,
+        "konto": request.args.get("konto") or "",
+        "kategorie_filter": request.args.get("kategorie_filter") or "",
+        "kategorie2_filter": request.args.get("kategorie2_filter") or "",
+        "page": page,
+    }
+
+
+def load_filter_data():
+    """Lädt Kategorien und Konten für Filter."""
+    kategorien = fetch_categories()
+    konten = []
+    try:
+        konten = fetch_konten_details()
+    except Exception as exc:
+        flash(f"Konten für Filter konnten nicht geladen werden: {exc}", "error")
+    return kategorien, konten
+
+
 def load_config():
-    """Lädt die gesamte config.json."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     cfg_path = os.path.join(base_dir, "config.json")
     try:
@@ -36,7 +91,6 @@ def load_config():
 
 
 def save_config(config):
-    """Speichert die gesamte config.json."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     cfg_path = os.path.join(base_dir, "config.json")
     with open(cfg_path, "w", encoding="utf-8") as f:
@@ -46,19 +100,16 @@ def save_config(config):
 def fetch_categories():
     with get_connection() as conn:
         cur = conn.cursor()
-        # Dropdown-Kategorien aus der neuen Stammtabelle `category`
         cur.execute("SELECT name FROM category ORDER BY name")
         rows = cur.fetchall()
         cur.close()
         kategorien = [row[0] for row in rows]
-        # "Sonstiges" hinzufügen, falls nicht vorhanden
         if "Sonstiges" not in kategorien:
             kategorien.append("Sonstiges")
         return kategorien
 
 
 def fetch_category_master():
-    """Liefert alle Kategorien aus der Stammtabelle `category`."""
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT id, name FROM category ORDER BY name")
@@ -68,7 +119,6 @@ def fetch_category_master():
 
 
 def fetch_keyword_mappings():
-    """Liefert alle Zuordnungen aus `keyword_category`."""
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -310,22 +360,7 @@ def index():
             if not datum_raw or not betrag_raw or not kategorie or not konto:
                 raise ValueError("Datum, Betrag, Kategorie und Konto sind erforderlich.")
 
-            # Betrag parsen (unterstützt Komma und Punkt als Dezimaltrenner)
-            betrag_str = betrag_raw.strip()
-            # Wenn Komma vorhanden, ist es Dezimaltrenner (deutsches Format)
-            if "," in betrag_str:
-                betrag_str = betrag_str.replace(".", "").replace(",", ".")
-            # Wenn nur Punkt vorhanden, prüfe ob Dezimaltrenner (max 2 Nachkommastellen)
-            elif "." in betrag_str:
-                parts = betrag_str.split(".")
-                # Wenn nach dem letzten Punkt nur 1-2 Ziffern, ist es Dezimaltrenner
-                if len(parts) > 1 and len(parts[-1]) <= 2:
-                    # Punkt ist Dezimaltrenner, behalte ihn
-                    betrag_str = betrag_str
-                else:
-                    # Punkt ist Tausender-Trenner, entferne ihn
-                    betrag_str = betrag_str.replace(".", "")
-            betrag = abs(float(betrag_str))
+            betrag = parse_amount(betrag_raw)
             datum = datetime.strptime(datum_raw, "%Y-%m-%d").date()
 
             # Mapping auf soll/haben basierend auf Typ
@@ -374,31 +409,13 @@ def index():
 
 @app.route("/dashboard")
 def dashboard():
-    # Standard-Filter auf aktuelles Jahr/Monat
-    today = date.today()
-    default_year = str(today.year)
-    default_month = [str(today.month)]
-    
-    year = request.args.get("year") or default_year
-    # Mehrere Monate als Liste lesen
-    month_list = request.args.getlist("month")
-    if not month_list:
-        month = default_month
-    else:
-        # Nur gültige Monate (1-12) behalten
-        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
-        if not month:
-            month = default_month
-    
-    konto = request.args.get("konto") or ""
-    kategorie_filter = request.args.get("kategorie_filter") or ""
-    kategorie2_filter = request.args.get("kategorie2_filter") or ""
-    page = int(request.args.get("page", 1))
-    
-    if year and not year.isdigit():
-        year = default_year
-    if page < 1:
-        page = 1
+    filters = parse_filter_params()
+    year = filters["year"]
+    month = filters["month"]
+    konto = filters["konto"]
+    kategorie_filter = filters["kategorie_filter"]
+    kategorie2_filter = filters["kategorie2_filter"]
+    page = filters["page"]
 
     cat_summary = fetch_category_summary(year, month)
     time_series = fetch_time_series(year, month)
@@ -416,8 +433,8 @@ def dashboard():
     values_haben = [c["haben"] for c in cat_summary]
     values_soll = [c["soll"] for c in cat_summary]
 
-    total_haben = sum(values_haben)  # Einnahmen aktueller Monat
-    total_soll = sum(values_soll)    # Ausgaben aktueller Monat
+    total_haben = sum(values_haben)
+    total_soll = sum(values_soll)
     cashflow = total_haben - total_soll
 
     labels_ts = [t["period"] for t in time_series]
@@ -426,20 +443,13 @@ def dashboard():
     labels_iban = [e["iban"] for e in einzahlungen]
     values_iban = [e["betrag"] for e in einzahlungen]
 
-    # Gesamtsaldo über alle Buchungen
     total_saldo = fetch_total_saldo()
-
-    kategorien = fetch_categories()
-    konten = []
-    try:
-        konten = fetch_konten_details()
-    except Exception as exc:
-        flash(f"Konten für Filter konnten nicht geladen werden (Tabelle 'konten' vorhanden?): {exc}", "error")
+    kategorien, konten = load_filter_data()
 
     return render_template(
         "dashboard.html",
-        year=year or "",
-        selected_months=month,  # Liste der ausgewählten Monate
+        year=year,
+        selected_months=month,
         labels_cat=labels_cat,
         values_haben=values_haben,
         values_soll=values_soll,
@@ -465,23 +475,12 @@ def dashboard():
 
 @app.route("/dashboard/export")
 def export_buchungen():
-    """Exportiert alle zur aktuellen Filtereinstellung passenden Buchungen als CSV."""
-    today = date.today()
-    default_year = str(today.year)
-    default_month = [str(today.month)]
-
-    year = request.args.get("year") or default_year
-    month_list = request.args.getlist("month")
-    if not month_list:
-        month = default_month
-    else:
-        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
-        if not month:
-            month = default_month
-    
-    konto = request.args.get("konto") or ""
-    kategorie_filter = request.args.get("kategorie_filter") or ""
-    kategorie2_filter = request.args.get("kategorie2_filter") or ""
+    filters = parse_filter_params()
+    year = filters["year"]
+    month = filters["month"]
+    konto = filters["konto"]
+    kategorie_filter = filters["kategorie_filter"]
+    kategorie2_filter = filters["kategorie2_filter"]
 
     where = []
     params = []
@@ -596,22 +595,7 @@ def edit_buchung(buchung_id):
             if not datum_raw or not betrag_raw or not kategorie:
                 raise ValueError("Datum, Betrag und Kategorie sind erforderlich.")
 
-            # Betrag parsen (unterstützt Komma und Punkt als Dezimaltrenner)
-            betrag_str = betrag_raw.strip()
-            # Wenn Komma vorhanden, ist es Dezimaltrenner (deutsches Format)
-            if "," in betrag_str:
-                betrag_str = betrag_str.replace(".", "").replace(",", ".")
-            # Wenn nur Punkt vorhanden, prüfe ob Dezimaltrenner (max 2 Nachkommastellen)
-            elif "." in betrag_str:
-                parts = betrag_str.split(".")
-                # Wenn nach dem letzten Punkt nur 1-2 Ziffern, ist es Dezimaltrenner
-                if len(parts) > 1 and len(parts[-1]) <= 2:
-                    # Punkt ist Dezimaltrenner, behalte ihn
-                    betrag_str = betrag_str
-                else:
-                    # Punkt ist Tausender-Trenner, entferne ihn
-                    betrag_str = betrag_str.replace(".", "")
-            betrag = abs(float(betrag_str))
+            betrag = parse_amount(betrag_raw)
             datum = datetime.strptime(datum_raw, "%Y-%m-%d").date()
 
             # Mapping auf soll/haben basierend auf Typ
@@ -1314,31 +1298,14 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
 
 @app.route("/buchungen")
 def buchungen():
-    """Buchungen-Seite mit erweiterten Filtern und 100 Einträgen pro Seite."""
-    today = date.today()
-    default_year = str(today.year)
-    default_month = [str(today.month)]
-    
-    year = request.args.get("year") or default_year
-    month_list = request.args.getlist("month")
-    if not month_list:
-        month = default_month
-    else:
-        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
-        if not month:
-            month = default_month
-    
-    konto = request.args.get("konto") or ""
-    kategorie_filter = request.args.get("kategorie_filter") or ""
-    kategorie2_filter = request.args.get("kategorie2_filter") or ""
-    page = int(request.args.get("page", 1))
-    
-    if year and not year.isdigit():
-        year = default_year
-    if page < 1:
-        page = 1
+    filters = parse_filter_params()
+    year = filters["year"]
+    month = filters["month"]
+    konto = filters["konto"]
+    kategorie_filter = filters["kategorie_filter"]
+    kategorie2_filter = filters["kategorie2_filter"]
+    page = filters["page"]
 
-    # 100 Buchungen pro Seite
     buchungen_list, total_buchungen, total_pages = fetch_buchungen(
         year,
         month,
@@ -1349,16 +1316,11 @@ def buchungen():
         kategorie2_filter=kategorie2_filter or None,
     )
 
-    kategorien = fetch_categories()
-    konten = []
-    try:
-        konten = fetch_konten_details()
-    except Exception as exc:
-        flash(f"Konten für Filter konnten nicht geladen werden (Tabelle 'konten' vorhanden?): {exc}", "error")
+    kategorien, konten = load_filter_data()
 
     return render_template(
         "buchungen.html",
-        year=year or "",
+        year=year,
         selected_months=month,
         buchungen=buchungen_list,
         current_page=page,
@@ -1374,42 +1336,22 @@ def buchungen():
 
 @app.route("/analysis")
 def analysis():
-    """Analyse-Seite mit Year-over-Year-Vergleich."""
-    today = date.today()
-    default_year = str(today.year)
-    default_month = [str(today.month)]
-    
-    year = request.args.get("year") or default_year
-    month_list = request.args.getlist("month")
-    if not month_list:
-        month = default_month
-    else:
-        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
-        if not month:
-            month = default_month
-    
-    konto = request.args.get("konto") or ""
-    kategorie_filter = request.args.get("kategorie_filter") or ""
-    compare_yoy = request.args.get("compare_yoy", "1") == "1"  # Standard: aktiviert
-    
-    if year and not year.isdigit():
-        year = default_year
-    
-    # Daten für aktuelles Jahr und Vorjahr holen
+    filters = parse_filter_params()
+    year = filters["year"]
+    month = filters["month"]
+    konto = filters["konto"]
+    kategorie_filter = filters["kategorie_filter"]
+    compare_yoy = request.args.get("compare_yoy", "1") == "1"
+
     analysis_data = fetch_analysis_data(
         year,
         month,
         konto=konto or None,
         kategorie_filter=kategorie_filter or None,
     )
-    
-    kategorien = fetch_categories()
-    konten = []
-    try:
-        konten = fetch_konten_details()
-    except Exception as exc:
-        flash(f"Konten für Filter konnten nicht geladen werden: {exc}", "error")
-    
+
+    kategorien, konten = load_filter_data()
+
     return render_template(
         "analysis.html",
         year=year,
