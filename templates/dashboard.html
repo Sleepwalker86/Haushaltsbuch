@@ -4,55 +4,134 @@
   <h1 class="mb-0">Dashboard</h1>
 </div>
 
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Aktueller Saldo (gesamt)</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0">
+          {{ "%.2f"|format(total_saldo) }} €
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Einnahmen (aktueller Monat)</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 text-success">
+          {{ "%.2f"|format(total_haben) }} €
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Ausgaben (aktueller Monat)</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 text-danger">
+          {{ "%.2f"|format(total_soll) }} €
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Cashflow</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 {% if cashflow >= 0 %}text-success{% else %}text-danger{% endif %}">
+          {{ "%.2f"|format(cashflow) }} €
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="mb-3">
   <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
     Filter ein-/ausklappen
   </button>
 </div>
-
-<div class="collapse d-md-block" id="filterCollapse">
-  <form method="get" class="row g-3 mb-4 align-items-end">
-    <div class="col-6 col-md-3">
-      <label for="year" class="form-label">Jahr</label>
-      <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
+<div class="row g-4 mb-4">
+  <div class="collapse d-md-block" id="filterCollapse">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Buchungen filtern</h3>
+      </div>
+      <div class="card-body">
+        <form method="get" class="row g-3 mb-4 align-items-end">
+          <div class="col-6 col-md-3">
+            <label for="year" class="form-label">Jahr</label>
+            <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Monat(e)</label>
+            <div class="row g-2">
+              {% for m, name in [
+                (1,'Jan'),(2,'Feb'),(3,'Mär'),(4,'Apr'),
+                (5,'Mai'),(6,'Jun'),(7,'Jul'),(8,'Aug'),
+                (9,'Sep'),(10,'Okt'),(11,'Nov'),(12,'Dez')
+              ] %}
+              <div class="col-6 col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         name="month"
+                         value="{{ m }}"
+                         id="month{{ m }}"
+                         {% if m|string in (selected_months or []) %}checked{% endif %}>
+                  <label class="form-check-label" for="month{{ m }}">
+                    {{ name }}
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="konto" class="form-label">Konto</label>
+            <select class="form-select" id="konto" name="konto">
+              <option value="">Alle Konten</option>
+              {% for k in konten %}
+                <option value="{{ k.iban }}" {% if k.iban == konto %}selected{% endif %}>
+                  {{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="kategorie_filter" class="form-label">Kategorie</label>
+            <select class="form-select" id="kategorie_filter" name="kategorie_filter">
+              <option value="">Alle Kategorien</option>
+              {% for kat in kategorien %}
+                <option value="{{ kat }}" {% if kat == kategorie_filter %}selected{% endif %}>
+                  {{ kat }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="kategorie2_filter" class="form-label">Unterkategorie enthält</label>
+            <input type="text" class="form-control" id="kategorie2_filter" name="kategorie2_filter"
+                  value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
+          </div>
+          <div class="col-6 col-md-3">
+            <button type="submit" class="btn btn-primary me-2">Filtern</button>
+            <a href="{{ url_for('dashboard') }}" class="text-muted text-decoration-none">Filter löschen</a>
+          </div>
+          <input type="hidden" name="page" value="1">
+        </form>
+      </div>
     </div>
-    <div class="col-6 col-md-3">
-      <label for="month" class="form-label">Monat</label>
-      <input type="number" class="form-control" id="month" name="month" placeholder="1-12" value="{{ month }}" min="1" max="12">
-    </div>
-    <div class="col-12 col-md-3">
-      <label for="konto" class="form-label">Konto</label>
-      <select class="form-select" id="konto" name="konto">
-        <option value="">Alle Konten</option>
-        {% for k in konten %}
-          <option value="{{ k.iban }}" {% if k.iban == konto %}selected{% endif %}>
-            {{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-12 col-md-3">
-      <label for="kategorie_filter" class="form-label">Kategorie</label>
-      <select class="form-select" id="kategorie_filter" name="kategorie_filter">
-        <option value="">Alle Kategorien</option>
-        {% for kat in kategorien %}
-          <option value="{{ kat }}" {% if kat == kategorie_filter %}selected{% endif %}>
-            {{ kat }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-12 col-md-3">
-      <label for="kategorie2_filter" class="form-label">Unterkategorie enthält</label>
-      <input type="text" class="form-control" id="kategorie2_filter" name="kategorie2_filter"
-             value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
-    </div>
-    <div class="col-12 col-md-3">
-      <button type="submit" class="btn btn-primary me-2">Filtern</button>
-      <a href="{{ url_for('dashboard') }}" class="text-muted text-decoration-none">Filter löschen</a>
-    </div>
-    <input type="hidden" name="page" value="1">
-  </form>
+  </div>
 </div>
 
 <div class="row g-4 mb-4">
@@ -61,12 +140,12 @@
     <div class="card shadow-sm h-100">
       <div class="card-header py-2">
         <h3 class="m-0 h6 fw-bold">Kategorien (Einnahmen/Ausgaben)</h3>
-        <div class="small text-muted mt-1">
+      </div>
+      <div class="card-body">
+        <div class="small text-muted mt-1 mb-2">
           Summe Einnahmen: {{ "%.2f"|format(total_haben) }} €<br>
           Summe Ausgaben: {{ "%.2f"|format(total_soll) }} €
         </div>
-      </div>
-      <div class="card-body">
         <div class="chart-container">
           <canvas id="catChart"></canvas>
         </div>
@@ -107,8 +186,15 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3 class="h5 mb-0">Buchungen ({{ total_buchungen }} Einträge)</h3>
     {% if buchungen %}
+    {% set query_parts = ['year=' + year|string] %}
+    {% for m in (selected_months or []) %}
+      {% set _ = query_parts.append('month=' + m) %}
+    {% endfor %}
+    {% if konto %}{% set _ = query_parts.append('konto=' + konto) %}{% endif %}
+    {% if kategorie_filter %}{% set _ = query_parts.append('kategorie_filter=' + kategorie_filter) %}{% endif %}
+    {% if kategorie2_filter %}{% set _ = query_parts.append('kategorie2_filter=' + kategorie2_filter) %}{% endif %}
     <a class="btn btn-sm btn-outline-secondary"
-       href="{{ url_for('export_buchungen', year=year, month=month, konto=konto, kategorie_filter=kategorie_filter, kategorie2_filter=kategorie2_filter) }}">
+       href="{{ url_for('export_buchungen') }}?{{ query_parts|join('&') }}">
       CSV herunterladen
     </a>
     {% endif %}
@@ -146,7 +232,11 @@
             {% if b.haben > 0 %}{{ "%.2f"|format(b.haben) }} €{% else %}-{% endif %}
           </td>
           <td class="text-center">
-            <a href="{{ url_for('edit_buchung', buchung_id=b.id, year=year, month=month, page=current_page) }}" 
+            {% set edit_query = 'year=' + year|string + '&page=' + current_page|string %}
+            {% for m in (selected_months or []) %}
+              {% set edit_query = edit_query + '&month=' + m %}
+            {% endfor %}
+            <a href="{{ url_for('edit_buchung', buchung_id=b.id) }}?{{ edit_query }}" 
                class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
                style="width: 28px; height: 28px; padding: 0;"
                title="Bearbeiten">
@@ -165,9 +255,15 @@
   {% if total_pages > 1 %}
   <nav aria-label="Seitennavigation" class="mt-4">
     <ul class="pagination justify-content-center">
+      {% set month_params = [] %}
+      {% for m in (selected_months or []) %}
+        {% set _ = month_params.append('month=' + m) %}
+      {% endfor %}
+      {% set month_query = month_params|join('&') %}
+      {% set base_query = 'year=' + year|string + (('&' + month_query) if month_query else '') + (('&konto=' + konto) if konto else '') + (('&kategorie_filter=' + kategorie_filter) if kategorie_filter else '') + (('&kategorie2_filter=' + kategorie2_filter) if kategorie2_filter else '') %}
       {% if current_page > 1 %}
       <li class="page-item">
-        <a class="page-link" href="{{ url_for('dashboard', year=year, month=month, page=current_page-1) }}">← Zurück</a>
+        <a class="page-link" href="{{ url_for('dashboard') }}?{{ base_query }}&page={{ current_page-1 }}">← Zurück</a>
       </li>
       {% else %}
       <li class="page-item disabled">
@@ -181,7 +277,7 @@
       
       {% if current_page < total_pages %}
       <li class="page-item">
-        <a class="page-link" href="{{ url_for('dashboard', year=year, month=month, page=current_page+1) }}">Weiter →</a>
+        <a class="page-link" href="{{ url_for('dashboard') }}?{{ base_query }}&page={{ current_page+1 }}">Weiter →</a>
       </li>
       {% else %}
       <li class="page-item disabled">

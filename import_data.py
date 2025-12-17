@@ -68,10 +68,10 @@ def send_image_to_paperless(image_path, paperless_url, paperless_token, paperles
             "Authorization": f"Token {paperless_token}"
         }
 
-        # Dokumententyp fest vergeben
-        data = {
-            "document_type": paperless_document_type_id
-        }
+        # Dokumententyp optional vergeben
+        data = {}
+        if paperless_document_type_id:
+            data["document_type"] = paperless_document_type_id
         
         with open(image_path, "rb") as f:
             files = {"document": f}
@@ -219,7 +219,7 @@ print("✅ Alle CSVs verarbeitet.")
 if PAPERLESS_CONFIG.get("ip") and PAPERLESS_CONFIG.get("token"):
     paperless_url = PAPERLESS_CONFIG["ip"]
     paperless_token = PAPERLESS_CONFIG["token"]
-    paperless_document_type_id = PAPERLESS_CONFIG["document_type_id"]
+    paperless_document_type_id = PAPERLESS_CONFIG.get("document_type_id")
     
     # Unterstützte Bildformate
     image_extensions = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".pdf"}

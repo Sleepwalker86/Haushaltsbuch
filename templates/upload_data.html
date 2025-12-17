@@ -46,12 +46,12 @@
           Der Import läuft automatisch alle 10 Minuten über einen Timer. Hier kannst du ihn bei Bedarf manuell anstoßen.
         </p>
         <form method="post" action="{{ url_for('reload_categories') }}" class="mb-2">
-          <button type="submit" class="btn btn-outline-secondary w-100">
+          <button type="submit" class="btn btn-outline-success w-100">
             Kategorien neu laden
           </button>
         </form>
         <form method="post" action="{{ url_for('import_data') }}">
-          <button type="submit" class="btn btn-outline-secondary w-100">
+          <button type="submit" class="btn btn-outline-success w-100">
             CSV Daten einlesen
           </button>
         </form>

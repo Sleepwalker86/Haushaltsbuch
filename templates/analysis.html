@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="mb-0">Erweiterte Analyse</h1>
+</div>
+
+<div class="mb-3">
+  <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+    Filter ein-/ausklappen
+  </button>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="collapse d-md-block" id="filterCollapse">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Filter</h3>
+      </div>
+      <div class="card-body">
+        <form method="get" class="row g-3 mb-4 align-items-end">
+          <div class="col-6 col-md-3">
+            <label for="year" class="form-label">Jahr</label>
+            <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Monat(e)</label>
+            <div class="row g-2">
+              {% for m, name in [
+                (1,'Jan'),(2,'Feb'),(3,'Mär'),(4,'Apr'),
+                (5,'Mai'),(6,'Jun'),(7,'Jul'),(8,'Aug'),
+                (9,'Sep'),(10,'Okt'),(11,'Nov'),(12,'Dez')
+              ] %}
+              <div class="col-6 col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         name="month"
+                         value="{{ m }}"
+                         id="month{{ m }}"
+                         {% if m|string in (selected_months or []) %}checked{% endif %}>
+                  <label class="form-check-label" for="month{{ m }}">
+                    {{ name }}
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="konto" class="form-label">Konto</label>
+            <select class="form-select" id="konto" name="konto">
+              <option value="">Alle Konten</option>
+              {% for k in konten %}
+                <option value="{{ k.iban }}" {% if k.iban == konto %}selected{% endif %}>
+                  {{ k.name }}{% if k.iban %} ({{ k.iban }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="kategorie_filter" class="form-label">Kategorie</label>
+            <select class="form-select" id="kategorie_filter" name="kategorie_filter">
+              <option value="">Alle Kategorien</option>
+              {% for kat in kategorien %}
+                <option value="{{ kat }}" {% if kat == kategorie_filter %}selected{% endif %}>
+                  {{ kat }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="compare_yoy" name="compare_yoy" value="1" {% if compare_yoy %}checked{% endif %}>
+              <label class="form-check-label" for="compare_yoy">Mit Vorjahr vergleichen</label>
+            </div>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary me-2">Filtern</button>
+            <a href="{{ url_for('analysis') }}" class="text-muted text-decoration-none">Filter löschen</a>
+          </div>
+          <input type="hidden" name="page" value="1">
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if compare_yoy %}
+<!-- KPI Cards mit YoY-Vergleich -->
+<div class="row g-3 mb-4">
+  {% set c = analysis_data.current %}
+  {% set p = analysis_data.previous %}
+  {% set d = analysis_data.deltas %}
+  {% set dp = analysis_data.deltas_pct %}
+  
+  <!-- Einnahmen -->
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Einnahmen</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 text-success">{{ "%.2f"|format(c.haben) }} €</div>
+        <div class="small text-muted mt-1">
+          Vorjahr: {{ "%.2f"|format(p.haben) }} €<br>
+          <span class="{% if d.haben >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ "%+.2f"|format(d.haben) }} € ({{ "%+.1f"|format(dp.haben) }}%)
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Ausgaben -->
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Ausgaben</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 text-danger">{{ "%.2f"|format(c.soll) }} €</div>
+        <div class="small text-muted mt-1">
+          Vorjahr: {{ "%.2f"|format(p.soll) }} €<br>
+          <span class="{% if d.soll <= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ "%+.2f"|format(d.soll) }} € ({{ "%+.1f"|format(dp.soll) }}%)
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Cashflow -->
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Cashflow</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 {% if c.cashflow >= 0 %}text-success{% else %}text-danger{% endif %}">
+          {{ "%.2f"|format(c.cashflow) }} €
+        </div>
+        <div class="small text-muted mt-1">
+          Vorjahr: {{ "%.2f"|format(p.cashflow) }} €<br>
+          <span class="{% if d.cashflow >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ "%+.2f"|format(d.cashflow) }} € ({{ "%+.1f"|format(dp.cashflow) }}%)
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Sparquote -->
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Sparquote</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 {% if c.sparquote >= 0 %}text-success{% else %}text-danger{% endif %}">
+          {{ "%.1f"|format(c.sparquote) }}%
+        </div>
+        <div class="small text-muted mt-1">
+          Vorjahr: {{ "%.1f"|format(p.sparquote) }}%<br>
+          <span class="{% if d.sparquote >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ "%+.1f"|format(d.sparquote) }} PP
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Diagramme -->
+<div class="row g-4 mb-4">
+  <!-- Einnahmen & Ausgaben YoY -->
+  <div class="col-12 col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Einnahmen & Ausgaben (YoY)</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="yoyBarChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Cashflow-Verlauf -->
+  <div class="col-12 col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Cashflow-Verlauf (YoY)</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="yoyLineChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Kategorien YoY -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Kategorien-Vergleich (YoY)</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 400px;">
+          <canvas id="yoyCategoryChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<!-- Nur aktuelles Jahr ohne Vergleich -->
+<div class="row g-3 mb-4">
+  {% set c = analysis_data.current %}
+  
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Einnahmen</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 text-success">{{ "%.2f"|format(c.haben) }} €</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Ausgaben</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 text-danger">{{ "%.2f"|format(c.soll) }} €</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Cashflow</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 {% if c.cashflow >= 0 %}text-success{% else %}text-danger{% endif %}">
+          {{ "%.2f"|format(c.cashflow) }} €
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-1">
+        <span class="small text-muted">Sparquote</span>
+      </div>
+      <div class="card-body">
+        <div class="h5 mb-0 {% if c.sparquote >= 0 %}text-success{% else %}text-danger{% endif %}">
+          {{ "%.1f"|format(c.sparquote) }}%
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+  .chart-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+  }
+  
+  @media (max-width: 768px) {
+    .chart-container {
+      height: 250px;
+    }
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if compare_yoy %}
+const analysisData = {{ analysis_data|tojson }};
+const currentYear = {{ year|int }};
+const previousYear = currentYear - 1;
+
+// Einnahmen & Ausgaben YoY (Balkendiagramm)
+const yoyBarCtx = document.getElementById('yoyBarChart').getContext('2d');
+new Chart(yoyBarCtx, {
+  type: 'bar',
+  data: {
+    labels: ['Einnahmen', 'Ausgaben'],
+    datasets: [
+      {
+        label: `${currentYear}`,
+        data: [analysisData.current.haben, analysisData.current.soll],
+        backgroundColor: ['#10b981', '#ef4444']
+      },
+      {
+        label: `${previousYear}`,
+        data: [analysisData.previous.haben, analysisData.previous.soll],
+        backgroundColor: ['#34d399', '#f87171']
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            return `${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(ctx.parsed.y)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: v => new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(v)
+        }
+      }
+    }
+  }
+});
+
+// Cashflow-Verlauf (Liniendiagramm)
+const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+const currentTS = analysisData.current.timeseries;
+const previousTS = analysisData.previous.timeseries;
+
+// Arrays für alle 12 Monate füllen
+const currentCashflow = new Array(12).fill(null);
+const previousCashflow = new Array(12).fill(null);
+
+currentTS.forEach(item => {
+  currentCashflow[item.month - 1] = item.cashflow;
+});
+previousTS.forEach(item => {
+  previousCashflow[item.month - 1] = item.cashflow;
+});
+
+const yoyLineCtx = document.getElementById('yoyLineChart').getContext('2d');
+new Chart(yoyLineCtx, {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: `${currentYear}`,
+        data: currentCashflow,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4,
+        fill: true
+      },
+      {
+        label: `${previousYear}`,
+        data: previousCashflow,
+        borderColor: '#94a3b8',
+        backgroundColor: 'rgba(148, 163, 184, 0.1)',
+        tension: 0.4,
+        fill: true,
+        borderDash: [5, 5]
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const val = ctx.parsed.y;
+            return val !== null ? `${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(val)}` : `${ctx.dataset.label}: Keine Daten`;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        ticks: {
+          callback: v => new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(v)
+        }
+      }
+    }
+  }
+});
+
+// Kategorien YoY (gestapeltes Balkendiagramm)
+const currentCats = analysisData.current.categories;
+const previousCats = analysisData.previous.categories;
+
+// Alle Kategorien sammeln
+const allCategories = new Set();
+currentCats.forEach(c => allCategories.add(c.kategorie));
+previousCats.forEach(c => allCategories.add(c.kategorie));
+const categoryList = Array.from(allCategories).sort();
+
+const currentCatSoll = categoryList.map(cat => {
+  const found = currentCats.find(c => c.kategorie === cat);
+  return found ? found.soll : 0;
+});
+const previousCatSoll = categoryList.map(cat => {
+  const found = previousCats.find(c => c.kategorie === cat);
+  return found ? found.soll : 0;
+});
+
+const yoyCategoryCtx = document.getElementById('yoyCategoryChart').getContext('2d');
+new Chart(yoyCategoryCtx, {
+  type: 'bar',
+  data: {
+    labels: categoryList,
+    datasets: [
+      {
+        label: `${currentYear}`,
+        data: currentCatSoll,
+        backgroundColor: '#3b82f6'
+      },
+      {
+        label: `${previousYear}`,
+        data: previousCatSoll,
+        backgroundColor: '#94a3b8'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            return `${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(ctx.parsed.y)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { stacked: true },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: {
+          callback: v => new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(v)
+        }
+      }
+    }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}
+

@@ -78,8 +78,13 @@ def fetch_category_summary(year=None, month=None):
         where.append("YEAR(datum) = %s")
         params.append(year)
     if month:
-        where.append("MONTH(datum) = %s")
-        params.append(month)
+        if isinstance(month, list):
+            placeholders = ",".join(["%s"] * len(month))
+            where.append(f"MONTH(datum) IN ({placeholders})")
+            params.extend(month)
+        else:
+            where.append("MONTH(datum) = %s")
+            params.append(month)
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     sql = f"""
         SELECT kategorie,
@@ -108,8 +113,13 @@ def fetch_time_series(year=None, month=None):
         where.append("YEAR(datum) = %s")
         params.append(year)
     if month:
-        where.append("MONTH(datum) = %s")
-        params.append(month)
+        if isinstance(month, list):
+            placeholders = ",".join(["%s"] * len(month))
+            where.append(f"MONTH(datum) IN ({placeholders})")
+            params.extend(month)
+        else:
+            where.append("MONTH(datum) = %s")
+            params.append(month)
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     sql = f"""
         SELECT DATE_FORMAT(datum, '%%Y-%%m-01') AS period,
@@ -134,8 +144,13 @@ def fetch_einzahlungen_by_iban(year=None, month=None):
         where.append("YEAR(datum) = %s")
         params.append(year)
     if month:
-        where.append("MONTH(datum) = %s")
-        params.append(month)
+        if isinstance(month, list):
+            placeholders = ",".join(["%s"] * len(month))
+            where.append(f"MONTH(datum) IN ({placeholders})")
+            params.extend(month)
+        else:
+            where.append("MONTH(datum) = %s")
+            params.append(month)
     where_sql = f"WHERE {' AND '.join(where)}"
     sql = f"""
         SELECT gegen_iban,
@@ -196,8 +211,13 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
         where.append("YEAR(datum) = %s")
         params.append(year)
     if month:
-        where.append("MONTH(datum) = %s")
-        params.append(month)
+        if isinstance(month, list):
+            placeholders = ",".join(["%s"] * len(month))
+            where.append(f"MONTH(datum) IN ({placeholders})")
+            params.extend(month)
+        else:
+            where.append("MONTH(datum) = %s")
+            params.append(month)
     if konto:
         where.append("konto = %s")
         params.append(konto)
@@ -250,6 +270,18 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
     
     total_pages = math.ceil(total / per_page) if total > 0 else 1
     return buchungen, total, total_pages
+
+
+def fetch_total_saldo():
+    """Gibt den aktuellen Gesamtsaldo über alle Buchungen zurück (Haben - Soll)."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COALESCE(SUM(IFNULL(haben,0) - IFNULL(soll,0)), 0) AS saldo FROM buchungen"
+        )
+        row = cur.fetchone()
+        cur.close()
+        return float(row[0] or 0)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -334,10 +366,19 @@ def dashboard():
     # Standard-Filter auf aktuelles Jahr/Monat
     today = date.today()
     default_year = str(today.year)
-    default_month = str(today.month)
+    default_month = [str(today.month)]
     
     year = request.args.get("year") or default_year
-    month = request.args.get("month") or default_month
+    # Mehrere Monate als Liste lesen
+    month_list = request.args.getlist("month")
+    if not month_list:
+        month = default_month
+    else:
+        # Nur gültige Monate (1-12) behalten
+        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
+        if not month:
+            month = default_month
+    
     konto = request.args.get("konto") or ""
     kategorie_filter = request.args.get("kategorie_filter") or ""
     kategorie2_filter = request.args.get("kategorie2_filter") or ""
@@ -345,15 +386,18 @@ def dashboard():
     
     if year and not year.isdigit():
         year = default_year
-    if month and not month.isdigit():
-        month = default_month
     if page < 1:
         page = 1
 
     cat_summary = fetch_category_summary(year, month)
     time_series = fetch_time_series(year, month)
     buchungen, total_buchungen, total_pages = fetch_buchungen(
-        year, month, page, konto=konto or None, kategorie_filter=kategorie_filter or None, kategorie2_filter=kategorie2_filter or None
+        year,
+        month,
+        page,
+        konto=konto or None,
+        kategorie_filter=kategorie_filter or None,
+        kategorie2_filter=kategorie2_filter or None,
     )
     einzahlungen = fetch_einzahlungen_by_iban(year, month)
 
@@ -361,14 +405,18 @@ def dashboard():
     values_haben = [c["haben"] for c in cat_summary]
     values_soll = [c["soll"] for c in cat_summary]
 
-    total_haben = sum(values_haben)
-    total_soll = sum(values_soll)
+    total_haben = sum(values_haben)  # Einnahmen aktueller Monat
+    total_soll = sum(values_soll)    # Ausgaben aktueller Monat
+    cashflow = total_haben - total_soll
 
     labels_ts = [t["period"] for t in time_series]
     values_ts = [t["saldo"] for t in time_series]
 
     labels_iban = [e["iban"] for e in einzahlungen]
     values_iban = [e["betrag"] for e in einzahlungen]
+
+    # Gesamtsaldo über alle Buchungen
+    total_saldo = fetch_total_saldo()
 
     kategorien = fetch_categories()
     konten = []
@@ -380,7 +428,7 @@ def dashboard():
     return render_template(
         "dashboard.html",
         year=year or "",
-        month=month or "",
+        selected_months=month,  # Liste der ausgewählten Monate
         labels_cat=labels_cat,
         values_haben=values_haben,
         values_soll=values_soll,
@@ -399,6 +447,8 @@ def dashboard():
         kategorie2_filter=kategorie2_filter,
         total_haben=total_haben,
         total_soll=total_soll,
+        total_saldo=total_saldo,
+        cashflow=cashflow,
     )
 
 
@@ -407,10 +457,17 @@ def export_buchungen():
     """Exportiert alle zur aktuellen Filtereinstellung passenden Buchungen als CSV."""
     today = date.today()
     default_year = str(today.year)
-    default_month = str(today.month)
+    default_month = [str(today.month)]
 
     year = request.args.get("year") or default_year
-    month = request.args.get("month") or default_month
+    month_list = request.args.getlist("month")
+    if not month_list:
+        month = default_month
+    else:
+        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
+        if not month:
+            month = default_month
+    
     konto = request.args.get("konto") or ""
     kategorie_filter = request.args.get("kategorie_filter") or ""
     kategorie2_filter = request.args.get("kategorie2_filter") or ""
@@ -421,8 +478,13 @@ def export_buchungen():
         where.append("YEAR(datum) = %s")
         params.append(year)
     if month:
-        where.append("MONTH(datum) = %s")
-        params.append(month)
+        if isinstance(month, list):
+            placeholders = ",".join(["%s"] * len(month))
+            where.append(f"MONTH(datum) IN ({placeholders})")
+            params.extend(month)
+        else:
+            where.append("MONTH(datum) = %s")
+            params.append(month)
     if konto:
         where.append("konto = %s")
         params.append(konto)
@@ -991,6 +1053,270 @@ def upload_csv():
         flash(f"CSV konnte nicht hochgeladen werden: {exc}", "error")
 
     return redirect(url_for("upload"))
+
+
+def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
+    """
+    Holt Daten für Analyse-Seite: aktuelles Jahr und Vorjahr.
+    Gibt zurück: {
+        'current': {einnahmen, ausgaben, cashflow, kategorien, ...},
+        'previous': {einnahmen, ausgaben, cashflow, kategorien, ...}
+    }
+    """
+    previous_year = str(int(year) - 1)
+    
+    # Aktuelles Jahr
+    where_current = []
+    params_current = []
+    if year:
+        where_current.append("YEAR(datum) = %s")
+        params_current.append(year)
+    if month:
+        if isinstance(month, list):
+            placeholders = ",".join(["%s"] * len(month))
+            where_current.append(f"MONTH(datum) IN ({placeholders})")
+            params_current.extend(month)
+        else:
+            where_current.append("MONTH(datum) = %s")
+            params_current.append(month)
+    if konto:
+        where_current.append("konto = %s")
+        params_current.append(konto)
+    if kategorie_filter:
+        where_current.append("kategorie = %s")
+        params_current.append(kategorie_filter)
+    where_sql_current = f"WHERE {' AND '.join(where_current)}" if where_current else ""
+    
+    # Vorjahr (gleiche Monate)
+    where_previous = []
+    params_previous = []
+    where_previous.append("YEAR(datum) = %s")
+    params_previous.append(previous_year)
+    if month:
+        if isinstance(month, list):
+            placeholders = ",".join(["%s"] * len(month))
+            where_previous.append(f"MONTH(datum) IN ({placeholders})")
+            params_previous.extend(month)
+        else:
+            where_previous.append("MONTH(datum) = %s")
+            params_previous.append(month)
+    if konto:
+        where_previous.append("konto = %s")
+        params_previous.append(konto)
+    if kategorie_filter:
+        where_previous.append("kategorie = %s")
+        params_previous.append(kategorie_filter)
+    where_sql_previous = f"WHERE {' AND '.join(where_previous)}"
+    
+    # Gesamtwerte aktuelles Jahr
+    sql_current = f"""
+        SELECT 
+            SUM(haben) AS total_haben,
+            SUM(soll) AS total_soll,
+            SUM(haben - soll) AS cashflow
+        FROM buchungen
+        {where_sql_current}
+    """
+    
+    # Gesamtwerte Vorjahr
+    sql_previous = f"""
+        SELECT 
+            SUM(haben) AS total_haben,
+            SUM(soll) AS total_soll,
+            SUM(haben - soll) AS cashflow
+        FROM buchungen
+        {where_sql_previous}
+    """
+    
+    # Kategorien aktuelles Jahr
+    sql_cat_current = f"""
+        SELECT 
+            kategorie,
+            SUM(haben) AS haben_sum,
+            SUM(soll) AS soll_sum
+        FROM buchungen
+        {where_sql_current}
+        GROUP BY kategorie
+        ORDER BY kategorie
+    """
+    
+    # Kategorien Vorjahr
+    sql_cat_previous = f"""
+        SELECT 
+            kategorie,
+            SUM(haben) AS haben_sum,
+            SUM(soll) AS soll_sum
+        FROM buchungen
+        {where_sql_previous}
+        GROUP BY kategorie
+        ORDER BY kategorie
+    """
+    
+    # Monatliche Zeitreihe aktuelles Jahr
+    sql_ts_current = f"""
+        SELECT 
+            MONTH(datum) AS month_num,
+            SUM(haben) AS haben_sum,
+            SUM(soll) AS soll_sum,
+            SUM(haben - soll) AS cashflow
+        FROM buchungen
+        {where_sql_current}
+        GROUP BY MONTH(datum)
+        ORDER BY MONTH(datum)
+    """
+    
+    # Monatliche Zeitreihe Vorjahr
+    sql_ts_previous = f"""
+        SELECT 
+            MONTH(datum) AS month_num,
+            SUM(haben) AS haben_sum,
+            SUM(soll) AS soll_sum,
+            SUM(haben - soll) AS cashflow
+        FROM buchungen
+        {where_sql_previous}
+        GROUP BY MONTH(datum)
+        ORDER BY MONTH(datum)
+    """
+    
+    with get_connection() as conn:
+        cur = conn.cursor()
+        
+        # Aktuelles Jahr
+        cur.execute(sql_current, params_current)
+        row_current = cur.fetchone()
+        current_total = {
+            "haben": float(row_current[0] or 0),
+            "soll": float(row_current[1] or 0),
+            "cashflow": float(row_current[2] or 0),
+        }
+        
+        # Vorjahr
+        cur.execute(sql_previous, params_previous)
+        row_previous = cur.fetchone()
+        previous_total = {
+            "haben": float(row_previous[0] or 0),
+            "soll": float(row_previous[1] or 0),
+            "cashflow": float(row_previous[2] or 0),
+        }
+        
+        # Kategorien aktuelles Jahr
+        cur.execute(sql_cat_current, params_current)
+        rows_cat_current = cur.fetchall()
+        current_categories = [
+            {"kategorie": r[0] or "", "haben": float(r[1] or 0), "soll": float(r[2] or 0)}
+            for r in rows_cat_current
+        ]
+        
+        # Kategorien Vorjahr
+        cur.execute(sql_cat_previous, params_previous)
+        rows_cat_previous = cur.fetchall()
+        previous_categories = [
+            {"kategorie": r[0] or "", "haben": float(r[1] or 0), "soll": float(r[2] or 0)}
+            for r in rows_cat_previous
+        ]
+        
+        # Zeitreihen
+        cur.execute(sql_ts_current, params_current)
+        rows_ts_current = cur.fetchall()
+        current_timeseries = [
+            {"month": int(r[0]), "haben": float(r[1] or 0), "soll": float(r[2] or 0), "cashflow": float(r[3] or 0)}
+            for r in rows_ts_current
+        ]
+        
+        cur.execute(sql_ts_previous, params_previous)
+        rows_ts_previous = cur.fetchall()
+        previous_timeseries = [
+            {"month": int(r[0]), "haben": float(r[1] or 0), "soll": float(r[2] or 0), "cashflow": float(r[3] or 0)}
+            for r in rows_ts_previous
+        ]
+        
+        cur.close()
+    
+    # Sparquote berechnen
+    current_total["sparquote"] = (current_total["cashflow"] / current_total["haben"] * 100) if current_total["haben"] > 0 else 0
+    previous_total["sparquote"] = (previous_total["cashflow"] / previous_total["haben"] * 100) if previous_total["haben"] > 0 else 0
+    
+    # Deltas berechnen
+    deltas = {
+        "haben": current_total["haben"] - previous_total["haben"],
+        "soll": current_total["soll"] - previous_total["soll"],
+        "cashflow": current_total["cashflow"] - previous_total["cashflow"],
+        "sparquote": current_total["sparquote"] - previous_total["sparquote"],
+    }
+    
+    # Prozentuale Änderungen
+    deltas_pct = {
+        "haben": (deltas["haben"] / previous_total["haben"] * 100) if previous_total["haben"] > 0 else 0,
+        "soll": (deltas["soll"] / previous_total["soll"] * 100) if previous_total["soll"] > 0 else 0,
+        "cashflow": (deltas["cashflow"] / abs(previous_total["cashflow"]) * 100) if previous_total["cashflow"] != 0 else 0,
+        "sparquote": deltas["sparquote"],
+    }
+    
+    return {
+        "current": {
+            **current_total,
+            "categories": current_categories,
+            "timeseries": current_timeseries,
+        },
+        "previous": {
+            **previous_total,
+            "categories": previous_categories,
+            "timeseries": previous_timeseries,
+        },
+        "deltas": deltas,
+        "deltas_pct": deltas_pct,
+    }
+
+
+@app.route("/analysis")
+def analysis():
+    """Analyse-Seite mit Year-over-Year-Vergleich."""
+    today = date.today()
+    default_year = str(today.year)
+    default_month = [str(today.month)]
+    
+    year = request.args.get("year") or default_year
+    month_list = request.args.getlist("month")
+    if not month_list:
+        month = default_month
+    else:
+        month = [m for m in month_list if m.isdigit() and 1 <= int(m) <= 12]
+        if not month:
+            month = default_month
+    
+    konto = request.args.get("konto") or ""
+    kategorie_filter = request.args.get("kategorie_filter") or ""
+    compare_yoy = request.args.get("compare_yoy", "1") == "1"  # Standard: aktiviert
+    
+    if year and not year.isdigit():
+        year = default_year
+    
+    # Daten für aktuelles Jahr und Vorjahr holen
+    analysis_data = fetch_analysis_data(
+        year,
+        month,
+        konto=konto or None,
+        kategorie_filter=kategorie_filter or None,
+    )
+    
+    kategorien = fetch_categories()
+    konten = []
+    try:
+        konten = fetch_konten_details()
+    except Exception as exc:
+        flash(f"Konten für Filter konnten nicht geladen werden: {exc}", "error")
+    
+    return render_template(
+        "analysis.html",
+        year=year,
+        selected_months=month,
+        konto=konto,
+        kategorie_filter=kategorie_filter,
+        kategorien=kategorien,
+        konten=konten,
+        compare_yoy=compare_yoy,
+        analysis_data=analysis_data,
+    )
 
 
 if __name__ == "__main__":
