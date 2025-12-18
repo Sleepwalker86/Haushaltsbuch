@@ -36,6 +36,13 @@
       Paperless
     </button>
   </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'export' %}active{% endif %}" id="export-tab"
+            data-bs-toggle="tab" data-bs-target="#export-pane" type="button" role="tab"
+            aria-controls="export-pane" aria-selected="{% if active_tab == 'export' %}true{% else %}false{% endif %}">
+      Datenexport
+    </button>
+  </li>
 </ul>
 
 <div class="tab-content" id="settingsTabsContent">
@@ -376,6 +383,68 @@
               </div>
               <button type="submit" class="btn btn-outline-success">
                 Einstellungen speichern
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Tab -->
+  <div class="tab-pane fade {% if active_tab == 'export' %}show active{% endif %}" id="export-pane" role="tabpanel" aria-labelledby="export-tab">
+    <div class="row g-4">
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">Alle Buchungen als CSV exportieren</h2>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              Laden Sie alle Buchungen aus der Datenbank als CSV-Datei herunter. Die Datei enthält alle verfügbaren Felder und kann in Excel oder anderen Tabellenkalkulationsprogrammen geöffnet werden.
+            </p>
+            <div class="alert alert-info">
+              <strong>Hinweis:</strong> Die CSV-Datei wird im deutschen Format erstellt (Semikolon als Trennzeichen, Komma als Dezimaltrennzeichen).
+            </div>
+            <a href="{{ url_for('settings.export_all_buchungen') }}" class="btn btn-outline-success">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Alle Buchungen als CSV herunterladen
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">Buchungen aus CSV importieren</h2>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              Importieren Sie Buchungen aus einer CSV-Datei zurück in die Datenbank. Die Datei muss im deutschen Format sein (Semikolon als Trennzeichen, Komma als Dezimaltrennzeichen).
+            </p>
+            <div class="alert alert-warning">
+              <strong>Hinweis:</strong> Duplikate werden automatisch erkannt und nicht importiert. Eine Buchung gilt als Duplikat, wenn Datum, Beschreibung, Soll, Haben, Konto und Gegen-IBAN identisch sind.
+            </div>
+            <form method="post" action="{{ url_for('settings.import_buchungen') }}" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="csv_file" class="form-label">CSV-Datei auswählen</label>
+                <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                <div class="form-text">
+                  Erwartete Spalten: Datum, Art, Beschreibung, Soll, Haben, Kategorie, Unterkategorie, Konto, Gegen-IBAN, Erstellt am
+                </div>
+              </div>
+              <button type="submit" class="btn btn-outline-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                CSV-Datei importieren
               </button>
             </form>
           </div>

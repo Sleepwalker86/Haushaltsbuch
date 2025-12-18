@@ -1,5 +1,9 @@
 """Settings-Routen."""
-from flask import Blueprint, render_template, request, redirect, flash, url_for
+from flask import Blueprint, render_template, request, redirect, flash, url_for, Response
+from datetime import datetime, date
+import csv
+from io import StringIO
+from werkzeug.utils import secure_filename
 
 from db import get_connection
 from utils.helpers import load_config, save_config
@@ -287,7 +291,7 @@ def settings():
         pass
 
     active_tab = request.args.get("tab")
-    if active_tab not in ("konten", "keywords", "paperless"):
+    if active_tab not in ("konten", "keywords", "paperless", "export"):
         active_tab = "konten"
 
     return render_template(
@@ -300,3 +304,228 @@ def settings():
         paperless_config=paperless_config,
         active_tab=active_tab,
     )
+
+
+@bp.route("/settings/export-all")
+def export_all_buchungen():
+    """Exportiert alle Buchungen als CSV-Datei."""
+    sql = """
+        SELECT datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, erzeugt_am
+        FROM buchungen
+        ORDER BY datum DESC, id DESC
+    """
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(sql)
+        rows = cur.fetchall()
+        cur.close()
+
+    # CSV erstellen (deutsches Semikolon-Format)
+    output = StringIO()
+    writer = csv.writer(output, delimiter=";")
+
+    # Kopfzeile
+    writer.writerow(
+        [
+            "Datum",
+            "Art",
+            "Beschreibung",
+            "Soll",
+            "Haben",
+            "Kategorie",
+            "Unterkategorie",
+            "Konto",
+            "Gegen-IBAN",
+            "Erstellt am",
+        ]
+    )
+
+    for row in rows:
+        (
+            datum,
+            art,
+            beschreibung,
+            soll,
+            haben,
+            kategorie,
+            kategorie2,
+            konto_val,
+            gegen_iban,
+            erzeugt_am,
+        ) = row
+
+        # Datum formatieren
+        if isinstance(datum, (datetime, date)):
+            datum_str = datum.strftime("%d.%m.%Y")
+        else:
+            datum_str = str(datum) if datum is not None else ""
+
+        # Erstellt am formatieren
+        if isinstance(erzeugt_am, (datetime, date)):
+            erzeugt_am_str = erzeugt_am.strftime("%d.%m.%Y %H:%M:%S")
+        else:
+            erzeugt_am_str = str(erzeugt_am) if erzeugt_am is not None else ""
+
+        writer.writerow(
+            [
+                datum_str,
+                art or "",
+                beschreibung or "",
+                f"{float(soll or 0):.2f}".replace(".", ","),
+                f"{float(haben or 0):.2f}".replace(".", ","),
+                kategorie or "",
+                kategorie2 or "",
+                konto_val or "",
+                gegen_iban or "",
+                erzeugt_am_str,
+            ]
+        )
+
+    csv_data = output.getvalue()
+    output.close()
+
+    # Dateiname mit aktuellem Datum
+    today = datetime.now().strftime("%Y%m%d")
+    filename = f"alle_buchungen_{today}.csv"
+
+    return Response(
+        csv_data,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@bp.route("/settings/import", methods=["POST"])
+def import_buchungen():
+    """Importiert Buchungen aus einer CSV-Datei."""
+    if "csv_file" not in request.files:
+        flash("Keine Datei ausgewählt.", "error")
+        return redirect(url_for("settings.settings", tab="export"))
+
+    file = request.files["csv_file"]
+    if file.filename == "":
+        flash("Keine Datei ausgewählt.", "error")
+        return redirect(url_for("settings.settings", tab="export"))
+
+    if not file.filename.lower().endswith(".csv"):
+        flash("Nur CSV-Dateien sind erlaubt.", "error")
+        return redirect(url_for("settings.settings", tab="export"))
+
+    try:
+        # CSV-Datei einlesen
+        content = file.read().decode("utf-8")
+        reader = csv.DictReader(StringIO(content), delimiter=";")
+
+        # Erwartete Spalten prüfen
+        expected_columns = [
+            "Datum",
+            "Art",
+            "Beschreibung",
+            "Soll",
+            "Haben",
+            "Kategorie",
+            "Unterkategorie",
+            "Konto",
+            "Gegen-IBAN",
+        ]
+        if not all(col in reader.fieldnames for col in expected_columns):
+            flash(
+                f"CSV-Datei hat nicht die erwarteten Spalten. Erwartet: {', '.join(expected_columns)}",
+                "error",
+            )
+            return redirect(url_for("settings.settings", tab="export"))
+
+        imported_count = 0
+        skipped_count = 0
+        error_count = 0
+
+        with get_connection() as conn:
+            cur = conn.cursor()
+
+            for row in reader:
+                try:
+                    # Datum parsen (Format: DD.MM.YYYY)
+                    datum_str = row["Datum"].strip()
+                    if not datum_str:
+                        error_count += 1
+                        continue
+
+                    try:
+                        datum = datetime.strptime(datum_str, "%d.%m.%Y").date()
+                    except ValueError:
+                        # Versuche alternatives Format
+                        try:
+                            datum = datetime.strptime(datum_str, "%Y-%m-%d").date()
+                        except ValueError:
+                            error_count += 1
+                            continue
+
+                    # Beträge parsen (deutsches Format: Komma als Dezimaltrennzeichen)
+                    soll_str = row["Soll"].strip().replace(".", "").replace(",", ".")
+                    haben_str = row["Haben"].strip().replace(".", "").replace(",", ".")
+
+                    try:
+                        soll = float(soll_str) if soll_str else 0.0
+                        haben = float(haben_str) if haben_str else 0.0
+                    except ValueError:
+                        error_count += 1
+                        continue
+
+                    # Textfelder
+                    art = row.get("Art", "").strip() or None
+                    beschreibung = row.get("Beschreibung", "").strip() or None
+                    kategorie = row.get("Kategorie", "").strip() or None
+                    kategorie2 = row.get("Unterkategorie", "").strip() or None
+                    konto = row.get("Konto", "").strip() or None
+                    gegen_iban = row.get("Gegen-IBAN", "").strip() or None
+
+                    # Duplikatsprüfung
+                    cur.execute(
+                        """
+                        SELECT COUNT(*) FROM buchungen
+                        WHERE datum=%s AND beschreibung=%s AND soll=%s AND haben=%s
+                        AND konto=%s AND gegen_iban=%s
+                        """,
+                        (datum, beschreibung, soll, haben, konto, gegen_iban),
+                    )
+
+                    if cur.fetchone()[0] == 0:
+                        # Buchung einfügen
+                        cur.execute(
+                            """
+                            INSERT INTO buchungen
+                            (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, manually_edit)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, 1),
+                        )
+                        imported_count += 1
+                    else:
+                        skipped_count += 1
+
+                except Exception as e:
+                    error_count += 1
+                    continue
+
+            conn.commit()
+            cur.close()
+
+        # Erfolgsmeldung
+        messages = []
+        if imported_count > 0:
+            messages.append(f"{imported_count} Buchung(en) erfolgreich importiert.")
+        if skipped_count > 0:
+            messages.append(f"{skipped_count} Duplikat(e) übersprungen.")
+        if error_count > 0:
+            messages.append(f"{error_count} Zeile(n) konnten nicht importiert werden.")
+
+        if messages:
+            flash(" ".join(messages), "success" if imported_count > 0 else "warning")
+        else:
+            flash("Keine Buchungen konnten importiert werden.", "error")
+
+    except Exception as exc:
+        flash(f"Fehler beim Importieren: {exc}", "error")
+
+    return redirect(url_for("settings.settings", tab="export"))
