@@ -223,7 +223,7 @@
       {% set base_query = 'year=' + year|string + (('&' + month_query) if month_query else '') + (('&konto=' + konto) if konto else '') + (('&kategorie_filter=' + kategorie_filter) if kategorie_filter else '') + (('&kategorie2_filter=' + kategorie2_filter) if kategorie2_filter else '') %}
       {% if current_page > 1 %}
       <li class="page-item">
-        <a class="page-link" href="{{ url_for('dashboard') }}?{{ base_query }}&page={{ current_page-1 }}">← Zurück</a>
+        <a class="page-link" href="{{ url_for('dashboard.dashboard') }}?{{ base_query }}&page={{ current_page-1 }}">← Zurück</a>
       </li>
       {% else %}
       <li class="page-item disabled">

@@ -32,5 +32,5 @@ app.register_blueprint(upload_bp)
 
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
-    app.config['DEBUG'] = True  # Debug-Modus aktivieren für bessere Fehlermeldungen
+    app.config['DEBUG'] = debug # Debug-Modus aktivieren für bessere Fehlermeldungen
     app.run(debug=debug, host="0.0.0.0", port=5001)
