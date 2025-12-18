@@ -174,6 +174,51 @@
     </div>
   </div>
 </div>
+
+<!-- Kategorien-Analysen -->
+<div class="row g-4 mb-4">
+  <!-- Top-Kategorien nach Ausgaben -->
+  <div class="col-12 col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Top-Kategorien nach Ausgaben{% if compare_year %} ({{ year }}){% endif %}</h3>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Rang</th>
+                <th>Kategorie</th>
+                <th class="text-end">Ausgaben</th>
+                {% if compare_year %}
+                <th class="text-end">{{ compare_year }}</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody id="topCategoriesTable">
+              <!-- Wird per JavaScript gefüllt -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Anteil je Kategorie (%) -->
+  <div class="col-12 col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Anteil je Kategorie (%){% if compare_year %} ({{ year }}){% endif %}</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 300px;">
+          <canvas id="categoryPieChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% else %}
 <!-- Nur aktuelles Jahr ohne Vergleich -->
 <div class="row g-3 mb-4">
@@ -258,6 +303,51 @@
       <div class="card-body">
         <div class="h5 mb-0 {% if c.sparquote >= 0 %}text-success{% else %}text-danger{% endif %}">
           {{ "%.1f"|format(c.sparquote) }}%
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Kategorien-Analysen (auch ohne Vergleichsjahr) -->
+<div class="row g-4 mb-4">
+  <!-- Top-Kategorien nach Ausgaben -->
+  <div class="col-12 col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Top-Kategorien nach Ausgaben{% if compare_year %} ({{ year }}){% endif %}</h3>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Rang</th>
+                <th>Kategorie</th>
+                <th class="text-end">Ausgaben</th>
+                {% if compare_year %}
+                <th class="text-end">{{ compare_year }}</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody id="topCategoriesTable">
+              <!-- Wird per JavaScript gefüllt -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Anteil je Kategorie (%) -->
+  <div class="col-12 col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header py-2">
+        <h3 class="m-0 h6 fw-bold">Anteil je Kategorie (%){% if compare_year %} ({{ year }}){% endif %}</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 300px;">
+          <canvas id="categoryPieChart"></canvas>
         </div>
       </div>
     </div>
@@ -395,17 +485,17 @@ new Chart(yoyLineCtx, {
 });
 
 // Kategorien YoY (gestapeltes Balkendiagramm)
-const currentCats = analysisData.current.categories;
+const currentCatsYoY = analysisData.current.categories;
 const previousCats = analysisData.previous.categories;
 
 // Alle Kategorien sammeln
 const allCategories = new Set();
-currentCats.forEach(c => allCategories.add(c.kategorie));
+currentCatsYoY.forEach(c => allCategories.add(c.kategorie));
 previousCats.forEach(c => allCategories.add(c.kategorie));
 const categoryList = Array.from(allCategories).sort();
 
 const currentCatSoll = categoryList.map(cat => {
-  const found = currentCats.find(c => c.kategorie === cat);
+  const found = currentCatsYoY.find(c => c.kategorie === cat);
   return found ? found.soll : 0;
 });
 const previousCatSoll = categoryList.map(cat => {
@@ -456,6 +546,149 @@ new Chart(yoyCategoryCtx, {
     }
   }
 });
+
+// Top-Kategorien nach Ausgaben (Tabelle)
+const currentCats = analysisData.current.categories;
+const topCategories = currentCats
+  .map(c => ({ kategorie: c.kategorie, soll: c.soll }))
+  .filter(c => c.soll > 0)
+  .sort((a, b) => b.soll - a.soll)
+  .slice(0, 10); // Top 10
+
+const totalSoll = topCategories.reduce((sum, c) => sum + c.soll, 0);
+const topCategoriesTable = document.getElementById('topCategoriesTable');
+topCategoriesTable.innerHTML = topCategories.map((cat, idx) => {
+  const pct = totalSoll > 0 ? ((cat.soll / totalSoll) * 100).toFixed(1) : 0;
+  let row = `<tr>
+    <td>${idx + 1}</td>
+    <td>${cat.kategorie}</td>
+    <td class="text-end">${new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(cat.soll)}</td>`;
+  if (compareYear) {
+    const prevCat = analysisData.previous.categories.find(c => c.kategorie === cat.kategorie);
+    const prevSoll = prevCat ? prevCat.soll : 0;
+    row += `<td class="text-end">${new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(prevSoll)}</td>`;
+  }
+  row += `</tr>`;
+  return row;
+}).join('');
+
+// Anteil je Kategorie (%) - Kreisdiagramm
+const categoryPieCtx = document.getElementById('categoryPieChart').getContext('2d');
+const pieLabels = topCategories.map(c => c.kategorie);
+const pieData = topCategories.map(c => c.soll);
+const pieColors = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+  '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#3b82f6'
+];
+
+new Chart(categoryPieCtx, {
+  type: 'pie',
+  data: {
+    labels: pieLabels,
+    datasets: [{
+      data: pieData,
+      backgroundColor: pieColors.slice(0, pieLabels.length),
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          boxWidth: 12,
+          padding: 8,
+          font: { size: 11 }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const label = ctx.label || '';
+            const value = new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(ctx.parsed);
+            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((ctx.parsed / total) * 100).toFixed(1);
+            return `${label}: ${value} (${percentage}%)`;
+          }
+        }
+      }
+    }
+  }
+});
+{% endif %}
+
+{% if not compare_year %}
+// Für den Fall ohne Vergleichsjahr: Top-Kategorien und Kreisdiagramm
+const analysisDataNoCompare = {{ analysis_data|tojson }};
+const currentCatsNoCompare = analysisDataNoCompare.current.categories;
+
+const topCategoriesNoCompare = currentCatsNoCompare
+  .map(c => ({ kategorie: c.kategorie, soll: c.soll }))
+  .filter(c => c.soll > 0)
+  .sort((a, b) => b.soll - a.soll)
+  .slice(0, 10);
+
+const topCategoriesTableNoCompare = document.getElementById('topCategoriesTable');
+if (topCategoriesTableNoCompare) {
+  topCategoriesTableNoCompare.innerHTML = topCategoriesNoCompare.map((cat, idx) => {
+    return `<tr>
+      <td>${idx + 1}</td>
+      <td>${cat.kategorie}</td>
+      <td class="text-end">${new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(cat.soll)}</td>
+    </tr>`;
+  }).join('');
+}
+
+const categoryPieCtxNoCompare = document.getElementById('categoryPieChart');
+if (categoryPieCtxNoCompare) {
+  const pieLabelsNoCompare = topCategoriesNoCompare.map(c => c.kategorie);
+  const pieDataNoCompare = topCategoriesNoCompare.map(c => c.soll);
+  const pieColorsNoCompare = [
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+    '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#3b82f6'
+  ];
+
+  new Chart(categoryPieCtxNoCompare.getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: pieLabelsNoCompare,
+      datasets: [{
+        data: pieDataNoCompare,
+        backgroundColor: pieColorsNoCompare.slice(0, pieLabelsNoCompare.length),
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            boxWidth: 12,
+            padding: 8,
+            font: { size: 11 }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const label = ctx.label || '';
+              const value = new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(ctx.parsed);
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
 {% endif %}
 
 // Bootstrap Popovers initialisieren
