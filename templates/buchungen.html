@@ -17,7 +17,7 @@
   </div>
 {% endif %}
 
-{{ filter_section(url_for('buchungen'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter) }}
+{{ filter_section(url_for('dashboard.buchungen'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter) }}
 
 <div class="mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -74,7 +74,7 @@
               {% if kategorie_filter %}{% set edit_query = edit_query + '&kategorie_filter=' + kategorie_filter %}{% endif %}
               {% if kategorie2_filter %}{% set edit_query = edit_query + '&kategorie2_filter=' + kategorie2_filter %}{% endif %}
               
-              <a href="{{ url_for('edit_buchung', buchung_id=b.id) }}?{{ edit_query }}" 
+              <a href="{{ url_for('actions.edit_buchung', buchung_id=b.id) }}?{{ edit_query }}" 
                  class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
                  style="width: 28px; height: 28px; padding: 0;"
                  title="Bearbeiten">
@@ -85,7 +85,7 @@
               </a>
               
               <form method="post" 
-                    action="{{ url_for('delete_buchung', buchung_id=b.id) }}?{{ edit_query }}"
+                    action="{{ url_for('actions.delete_buchung', buchung_id=b.id) }}?{{ edit_query }}"
                     style="display:inline;"
                     onsubmit="return confirm('Buchung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
                 <button type="submit"
@@ -123,7 +123,7 @@
       
       {% if current_page > 1 %}
       <li class="page-item">
-        <a class="page-link" href="{{ url_for('buchungen') }}?{{ base_query }}&page={{ current_page-1 }}">← Zurück</a>
+        <a class="page-link" href="{{ url_for('dashboard.buchungen') }}?{{ base_query }}&page={{ current_page-1 }}">← Zurück</a>
       </li>
       {% else %}
       <li class="page-item disabled">
@@ -137,7 +137,7 @@
       
       {% if current_page < total_pages %}
       <li class="page-item">
-        <a class="page-link" href="{{ url_for('buchungen') }}?{{ base_query }}&page={{ current_page+1 }}">Weiter →</a>
+        <a class="page-link" href="{{ url_for('dashboard.buchungen') }}?{{ base_query }}&page={{ current_page+1 }}">Weiter →</a>
       </li>
       {% else %}
       <li class="page-item disabled">

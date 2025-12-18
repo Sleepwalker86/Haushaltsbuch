@@ -5,7 +5,7 @@
   <h1 class="mb-0">Erweiterte Analyse</h1>
 </div>
 
-{{ filter_section(url_for('analysis'), year, selected_months, konto, kategorien, konten, kategorie_filter, None, show_yoy=true, compare_year=compare_year, available_years=available_years) }}
+{{ filter_section(url_for('dashboard.analysis'), year, selected_months, konto, kategorien, konten, kategorie_filter, None, show_yoy=true, compare_year=compare_year, available_years=available_years) }}
 
 {% if compare_year %}
 <!-- KPI Cards mit YoY-Vergleich -->

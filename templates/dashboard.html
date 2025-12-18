@@ -92,7 +92,7 @@
   </div>
 </div>
 
-{{ filter_section(url_for('dashboard'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter) }}
+{{ filter_section(url_for('dashboard.dashboard'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter) }}
 
 <div class="row g-4 mb-4">
   <!-- Kategorien (Einnahmen/Ausgaben) -->
@@ -154,7 +154,7 @@
     {% if kategorie_filter %}{% set _ = query_parts.append('kategorie_filter=' + kategorie_filter) %}{% endif %}
     {% if kategorie2_filter %}{% set _ = query_parts.append('kategorie2_filter=' + kategorie2_filter) %}{% endif %}
     <a class="btn btn-sm btn-outline-secondary"
-       href="{{ url_for('export_buchungen') }}?{{ query_parts|join('&') }}">
+       href="{{ url_for('dashboard.export_buchungen') }}?{{ query_parts|join('&') }}">
       CSV herunterladen
     </a>
     {% endif %}
@@ -196,7 +196,7 @@
             {% for m in (selected_months or []) %}
               {% set edit_query = edit_query + '&month=' + m %}
             {% endfor %}
-            <a href="{{ url_for('edit_buchung', buchung_id=b.id) }}?{{ edit_query }}" 
+            <a href="{{ url_for('actions.edit_buchung', buchung_id=b.id) }}?{{ edit_query }}" 
                class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
                style="width: 28px; height: 28px; padding: 0;"
                title="Bearbeiten">
@@ -237,7 +237,7 @@
       
       {% if current_page < total_pages %}
       <li class="page-item">
-        <a class="page-link" href="{{ url_for('dashboard') }}?{{ base_query }}&page={{ current_page+1 }}">Weiter →</a>
+        <a class="page-link" href="{{ url_for('dashboard.dashboard') }}?{{ base_query }}&page={{ current_page+1 }}">Weiter →</a>
       </li>
       {% else %}
       <li class="page-item disabled">

@@ -21,7 +21,7 @@
         <h2 class="m-0 h6 fw-bold">CSV-Datei hochladen</h2>
       </div>
       <div class="card-body">
-        <form method="post" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data">
+        <form method="post" action="{{ url_for('upload.upload_csv') }}" enctype="multipart/form-data">
           <div class="input-group">
             <input type="file" class="form-control" name="csv_file" accept=".csv" required>
             <button type="submit" class="btn btn-outline-success">
@@ -48,12 +48,12 @@
         <p class="text-muted small">
           Der Import läuft automatisch alle 10 Minuten über einen Timer. Hier kannst du ihn bei Bedarf manuell anstoßen.
         </p>
-        <form method="post" action="{{ url_for('reload_categories') }}" class="mb-2">
+        <form method="post" action="{{ url_for('actions.reload_categories') }}" class="mb-2">
           <button type="submit" class="btn btn-outline-success w-100">
             Kategorien neu laden
           </button>
         </form>
-        <form method="post" action="{{ url_for('import_data') }}">
+        <form method="post" action="{{ url_for('actions.import_data') }}">
           <button type="submit" class="btn btn-outline-success w-100">
             CSV Daten einlesen
           </button>
