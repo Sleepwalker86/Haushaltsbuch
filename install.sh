@@ -244,12 +244,25 @@ if [ ! -f "$CONFIG_FILE" ]; then
         echo
         DB_PASS=${DB_PASS:-1234}
 
-        read -p "DB Name [Haushaltsbuch]: " DB_NAME
-        DB_NAME=${DB_NAME:-Haushaltsbuch}
+    read -p "DB Name [Haushaltsbuch]: " DB_NAME
+    DB_NAME=${DB_NAME:-Haushaltsbuch}
+    fi
+
+    # Secret Key für Flask generieren oder abfragen
+    echo ""
+    echo "🔐 Flask Secret Key"
+    read -sp "Secret Key für Flask (Enter für automatische Generierung): " FLASK_SECRET_KEY
+    echo
+    if [ -z "$FLASK_SECRET_KEY" ]; then
+        FLASK_SECRET_KEY=$(openssl rand -hex 32)
+        echo "✅ Secret Key wurde automatisch generiert."
+    else
+        echo "✅ Secret Key wurde übernommen."
     fi
 
     cat > "$CONFIG_FILE" <<EOF
 {
+  "SECRET_KEY": "$FLASK_SECRET_KEY",
   "DB_CONFIG": {
     "host": "$DB_HOST",
     "user": "$DB_USER",

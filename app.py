@@ -5,7 +5,20 @@ from flask import Flask
 from utils.helpers import load_config
 
 app = Flask(__name__)
-app.secret_key = "change-me-please"
+# Secret Key aus config.json lesen, Fallback für Entwicklung
+try:
+    config = load_config()
+    app.secret_key = config.get("SECRET_KEY", "change-me-please")
+except Exception:
+    app.secret_key = "change-me-please"
+
+if app.secret_key == "change-me-please":
+    import warnings
+    warnings.warn(
+        "⚠️  WARNUNG: Secret Key verwendet Standard-Wert! "
+        "Für Produktion bitte SECRET_KEY in config.json setzen.",
+        UserWarning
+    )
 
 
 @app.context_processor

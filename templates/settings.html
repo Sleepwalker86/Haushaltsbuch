@@ -240,10 +240,15 @@
               </div>
               <button type="submit" class="btn btn-outline-success">
                 {% if edit_mapping %}Zuordnung aktualisieren{% else %}Zuordnung speichern{% endif %}
-              </button>
+              </button>              
               {% if edit_mapping %}
                 <a href="{{ url_for('settings.settings', tab='keywords') }}" class="btn btn-outline-secondary ms-2">Abbrechen</a>
               {% endif %}
+            </form>
+            <form method="post" action="{{ url_for('actions.reload_categories') }}" class="mb-2">
+              <button type="submit" class="btn btn-outline-secondary w-80 mt-2">
+                Kategorien neu laden
+              </button>
             </form>
           </div>
         </div>
