@@ -101,7 +101,7 @@
 <body>
   <nav class="navbar navbar-expand-lg mb-4">
     <div class="container main-container">
-      <a class="navbar-brand" href="{{ url_for('index') }}">Haushaltsbuch</a>
+      <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">Haushaltsbuch</a>
   
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
               data-bs-target="#mainNavbar">
@@ -111,34 +111,34 @@
       <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
-               href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a class="nav-link {% if request.endpoint == 'dashboard.dashboard' %}active{% endif %}"
+               href="{{ url_for('dashboard.dashboard') }}">Dashboard</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'analysis' %}active{% endif %}"
-               href="{{ url_for('analysis') }}">Analyse</a>
+            <a class="nav-link {% if request.endpoint == 'dashboard.analysis' %}active{% endif %}"
+               href="{{ url_for('dashboard.analysis') }}">Analyse</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
-               href="{{ url_for('index') }}">Erfassen</a>
+            <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+               href="{{ url_for('dashboard.index') }}">Erfassen</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'buchungen' %}active{% endif %}"
-               href="{{ url_for('buchungen') }}">Buchungen</a>
+            <a class="nav-link {% if request.endpoint == 'dashboard.buchungen' %}active{% endif %}"
+               href="{{ url_for('dashboard.buchungen') }}">Buchungen</a>
           </li>
           {% if paperless_enabled %}
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'paperless' %}active{% endif %}"
-               href="{{ url_for('paperless') }}">Paperless</a>
+            <a class="nav-link {% if request.endpoint == 'upload.paperless' %}active{% endif %}"
+               href="{{ url_for('upload.paperless') }}">Paperless</a>
           </li>
           {% endif %}
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'upload' %}active{% endif %}"
-               href="{{ url_for('upload') }}">Upload</a>
+            <a class="nav-link {% if request.endpoint == 'upload.upload' %}active{% endif %}"
+               href="{{ url_for('upload.upload') }}">Upload</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'settings' and active_tab == 'konten' %}active{% endif %}"
-               href="{{ url_for('settings', tab='konten') }}">Einstellungen</a>
+            <a class="nav-link {% if request.endpoint == 'settings.settings' and active_tab == 'konten' %}active{% endif %}"
+               href="{{ url_for('settings.settings', tab='konten') }}">Einstellungen</a>
           </li>
         </ul>
       </div>

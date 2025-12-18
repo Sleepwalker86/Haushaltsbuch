@@ -2,7 +2,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="mb-0">Buchung bearbeiten</h1>
-  <a href="{{ url_for('dashboard', year=request.args.get('year'), month=request.args.get('month'), page=request.args.get('page', 1)) }}" class="btn btn-outline-secondary">Zurück zum Dashboard</a>
+  <a href="{{ url_for('dashboard.dashboard', year=request.args.get('year'), month=request.args.get('month'), page=request.args.get('page', 1)) }}" class="btn btn-outline-secondary">Zurück zum Dashboard</a>
 </div>
 
 {% if get_flashed_messages() %}
@@ -75,7 +75,7 @@
   <button type="submit" class="btn btn-primary" form="edit-form">Speichern</button>
 
   <form method="post"
-        action="{{ url_for('delete_buchung', buchung_id=buchung.id, year=request.args.get('year'), month=request.args.get('month'), page=request.args.get('page', 1)) }}"
+        action="{{ url_for('actions.delete_buchung', buchung_id=buchung.id, year=request.args.get('year'), month=request.args.get('month'), page=request.args.get('page', 1)) }}"
         onsubmit="return confirm('Buchung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
     <button type="submit" class="btn btn-outline-danger">Löschen</button>
   </form>

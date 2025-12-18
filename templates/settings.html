@@ -75,7 +75,7 @@
                   {% if edit_konto %}Konto aktualisieren{% else %}Konto speichern{% endif %}
                 </button>
                 {% if edit_konto %}
-                  <a href="{{ url_for('settings', tab='konten') }}" class="btn btn-outline-secondary">Abbrechen</a>
+                  <a href="{{ url_for('settings.settings', tab='konten') }}" class="btn btn-outline-secondary">Abbrechen</a>
                 {% endif %}
               </div>
             </form>
@@ -106,7 +106,7 @@
                     <td>{{ k.iban }}</td>
                     <td class="text-center">
                       <div class="d-inline-flex gap-1">
-                        <a href="{{ url_for('settings', edit_id=k.id, tab='konten') }}"
+                        <a href="{{ url_for('settings.settings', edit_id=k.id, tab='konten') }}"
                            class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
                            style="width: 28px; height: 28px; padding: 0;"
                            title="Konto bearbeiten">
@@ -240,10 +240,15 @@
               </div>
               <button type="submit" class="btn btn-outline-success">
                 {% if edit_mapping %}Zuordnung aktualisieren{% else %}Zuordnung speichern{% endif %}
-              </button>
+              </button>              
               {% if edit_mapping %}
-                <a href="{{ url_for('settings', tab='keywords') }}" class="btn btn-outline-secondary ms-2">Abbrechen</a>
+                <a href="{{ url_for('settings.settings', tab='keywords') }}" class="btn btn-outline-secondary ms-2">Abbrechen</a>
               {% endif %}
+            </form>
+            <form method="post" action="{{ url_for('actions.reload_categories') }}" class="mb-2">
+              <button type="submit" class="btn btn-outline-secondary w-80 mt-2">
+                Kategorien neu laden
+              </button>
             </form>
           </div>
         </div>
@@ -272,7 +277,7 @@
                     <td>{{ m.schluesselwort }}</td>
                     <td class="text-center">
                       <div class="d-inline-flex gap-1">
-                        <a href="{{ url_for('settings', tab='keywords', mapping_id=m.id) }}"
+                        <a href="{{ url_for('settings.settings', tab='keywords', mapping_id=m.id) }}"
                            class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
                            style="width: 28px; height: 28px; padding: 0;"
                            title="Zuordnung bearbeiten">
