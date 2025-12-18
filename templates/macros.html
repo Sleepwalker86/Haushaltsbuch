@@ -1,4 +1,4 @@
-{% macro filter_section(filter_url, year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter, show_yoy=false, compare_yoy=false) %}
+{% macro filter_section(filter_url, year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter, show_yoy=false, compare_year=None, available_years=None) %}
 <div class="mb-3">
   <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
     Filter ein-/ausklappen
@@ -70,12 +70,19 @@
                    value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
           </div>
           {% endif %}
-          {% if show_yoy %}
-          <div class="col-12 col-md-3">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" role="switch" id="compare_yoy" name="compare_yoy" value="1" {% if compare_yoy %}checked{% endif %}>
-              <label class="form-check-label" for="compare_yoy">Mit Vorjahr vergleichen</label>
-            </div>
+          {% if show_yoy and available_years %}
+          <div class="col-6 col-md-3">
+            <label for="compare_year" class="form-label">Vergleichsjahr</label>
+            <select class="form-select" id="compare_year" name="compare_year">
+              <option value="">Kein Vergleich</option>
+              {% for y in available_years %}
+                {% if y != year %}
+                  <option value="{{ y }}" {% if compare_year == y %}selected{% endif %}>
+                    {{ y }}
+                  </option>
+                {% endif %}
+              {% endfor %}
+            </select>
           </div>
           {% endif %}
           <div class="col-12">

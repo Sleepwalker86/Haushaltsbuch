@@ -5,9 +5,9 @@
   <h1 class="mb-0">Erweiterte Analyse</h1>
 </div>
 
-{{ filter_section(url_for('analysis'), year, selected_months, konto, kategorien, konten, kategorie_filter, None, show_yoy=true, compare_yoy=compare_yoy) }}
+{{ filter_section(url_for('analysis'), year, selected_months, konto, kategorien, konten, kategorie_filter, None, show_yoy=true, compare_year=compare_year, available_years=available_years) }}
 
-{% if compare_yoy %}
+{% if compare_year %}
 <!-- KPI Cards mit YoY-Vergleich -->
 <div class="row g-3 mb-4">
   {% set c = analysis_data.current %}
@@ -33,7 +33,7 @@
       <div class="card-body">
         <div class="h5 mb-0 text-success">{{ "%.2f"|format(c.haben) }} €</div>
         <div class="small text-muted mt-1">
-          Vorjahr: {{ "%.2f"|format(p.haben) }} €<br>
+          {{ compare_year }}: {{ "%.2f"|format(p.haben) }} €<br>
           <span class="{% if d.haben >= 0 %}text-success{% else %}text-danger{% endif %}">
             {{ "%+.2f"|format(d.haben) }} € ({{ "%+.1f"|format(dp.haben) }}%)
           </span>
@@ -60,7 +60,7 @@
       <div class="card-body">
         <div class="h5 mb-0 text-danger">{{ "%.2f"|format(c.soll) }} €</div>
         <div class="small text-muted mt-1">
-          Vorjahr: {{ "%.2f"|format(p.soll) }} €<br>
+          {{ compare_year }}: {{ "%.2f"|format(p.soll) }} €<br>
           <span class="{% if d.soll <= 0 %}text-success{% else %}text-danger{% endif %}">
             {{ "%+.2f"|format(d.soll) }} € ({{ "%+.1f"|format(dp.soll) }}%)
           </span>
@@ -89,7 +89,7 @@
           {{ "%.2f"|format(c.cashflow) }} €
         </div>
         <div class="small text-muted mt-1">
-          Vorjahr: {{ "%.2f"|format(p.cashflow) }} €<br>
+          {{ compare_year }}: {{ "%.2f"|format(p.cashflow) }} €<br>
           <span class="{% if d.cashflow >= 0 %}text-success{% else %}text-danger{% endif %}">
             {{ "%+.2f"|format(d.cashflow) }} € ({{ "%+.1f"|format(dp.cashflow) }}%)
           </span>
@@ -118,7 +118,7 @@
           {{ "%.1f"|format(c.sparquote) }}%
         </div>
         <div class="small text-muted mt-1">
-          Vorjahr: {{ "%.1f"|format(p.sparquote) }}%<br>
+          {{ compare_year }}: {{ "%.1f"|format(p.sparquote) }}%<br>
           <span class="{% if d.sparquote >= 0 %}text-success{% else %}text-danger{% endif %}">
             {{ "%+.1f"|format(d.sparquote) }} PP
           </span>
@@ -134,7 +134,7 @@
   <div class="col-12 col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-header py-2">
-        <h3 class="m-0 h6 fw-bold">Einnahmen & Ausgaben (YoY)</h3>
+        <h3 class="m-0 h6 fw-bold">Einnahmen & Ausgaben{% if compare_year %} ({{ year }} vs {{ compare_year }}){% endif %}</h3>
       </div>
       <div class="card-body">
         <div class="chart-container">
@@ -148,7 +148,7 @@
   <div class="col-12 col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-header py-2">
-        <h3 class="m-0 h6 fw-bold">Cashflow-Verlauf (YoY)</h3>
+        <h3 class="m-0 h6 fw-bold">Cashflow-Verlauf{% if compare_year %} ({{ year }} vs {{ compare_year }}){% endif %}</h3>
       </div>
       <div class="card-body">
         <div class="chart-container">
@@ -164,7 +164,7 @@
   <div class="col-12">
     <div class="card shadow-sm">
       <div class="card-header py-2">
-        <h3 class="m-0 h6 fw-bold">Kategorien-Vergleich (YoY)</h3>
+        <h3 class="m-0 h6 fw-bold">Kategorien-Vergleich{% if compare_year %} ({{ year }} vs {{ compare_year }}){% endif %}</h3>
       </div>
       <div class="card-body">
         <div class="chart-container" style="height: 400px;">
@@ -281,10 +281,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-{% if compare_yoy %}
+{% if compare_year %}
 const analysisData = {{ analysis_data|tojson }};
 const currentYear = {{ year|int }};
-const previousYear = currentYear - 1;
+const compareYear = {{ compare_year|int }};
 
 // Einnahmen & Ausgaben YoY (Balkendiagramm)
 const yoyBarCtx = document.getElementById('yoyBarChart').getContext('2d');
@@ -299,7 +299,7 @@ new Chart(yoyBarCtx, {
         backgroundColor: ['#10b981', '#ef4444']
       },
       {
-        label: `${previousYear}`,
+        label: `${compareYear}`,
         data: [analysisData.previous.haben, analysisData.previous.soll],
         backgroundColor: ['#34d399', '#f87171']
       }
@@ -360,7 +360,7 @@ new Chart(yoyLineCtx, {
         fill: true
       },
       {
-        label: `${previousYear}`,
+        label: `${compareYear}`,
         data: previousCashflow,
         borderColor: '#94a3b8',
         backgroundColor: 'rgba(148, 163, 184, 0.1)',
@@ -425,7 +425,7 @@ new Chart(yoyCategoryCtx, {
         backgroundColor: '#3b82f6'
       },
       {
-        label: `${previousYear}`,
+        label: `${compareYear}`,
         data: previousCatSoll,
         backgroundColor: '#94a3b8'
       }

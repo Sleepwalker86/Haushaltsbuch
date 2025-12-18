@@ -97,6 +97,16 @@ def save_config(config):
         json.dump(config, f, indent=4, ensure_ascii=False)
 
 
+def fetch_available_years():
+    """Holt alle verfügbaren Jahre aus der Datenbank."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT YEAR(datum) FROM buchungen ORDER BY YEAR(datum) DESC")
+        years = [str(row[0]) for row in cur.fetchall()]
+        cur.close()
+        return years
+
+
 def fetch_categories():
     with get_connection() as conn:
         cur = conn.cursor()
@@ -1092,15 +1102,19 @@ def upload_csv():
     return redirect(url_for("upload"))
 
 
-def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
+def fetch_analysis_data(year, month, konto=None, kategorie_filter=None, compare_year=None):
     """
-    Holt Daten für Analyse-Seite: aktuelles Jahr und Vorjahr.
+    Holt Daten für Analyse-Seite: aktuelles Jahr und Vergleichsjahr.
     Gibt zurück: {
         'current': {einnahmen, ausgaben, cashflow, kategorien, ...},
         'previous': {einnahmen, ausgaben, cashflow, kategorien, ...}
     }
     """
-    previous_year = str(int(year) - 1)
+    # Wenn kein Vergleichsjahr angegeben, wird keines verwendet
+    if not compare_year:
+        compare_year = None
+    else:
+        compare_year = str(compare_year)
     
     # Aktuelles Jahr
     where_current = []
@@ -1124,11 +1138,12 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
         params_current.append(kategorie_filter)
     where_sql_current = f"WHERE {' AND '.join(where_current)}" if where_current else ""
     
-    # Vorjahr (gleiche Monate)
+    # Vergleichsjahr (gleiche Monate) - nur wenn angegeben
     where_previous = []
     params_previous = []
-    where_previous.append("YEAR(datum) = %s")
-    params_previous.append(previous_year)
+    if compare_year:
+        where_previous.append("YEAR(datum) = %s")
+        params_previous.append(compare_year)
     if month:
         if isinstance(month, list):
             placeholders = ",".join(["%s"] * len(month))
@@ -1143,7 +1158,7 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
     if kategorie_filter:
         where_previous.append("kategorie = %s")
         params_previous.append(kategorie_filter)
-    where_sql_previous = f"WHERE {' AND '.join(where_previous)}"
+    where_sql_previous = f"WHERE {' AND '.join(where_previous)}" if where_previous else ""
     
     # Gesamtwerte aktuelles Jahr
     sql_current = f"""
@@ -1227,14 +1242,21 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
             "cashflow": float(row_current[2] or 0),
         }
         
-        # Vorjahr
-        cur.execute(sql_previous, params_previous)
-        row_previous = cur.fetchone()
-        previous_total = {
-            "haben": float(row_previous[0] or 0),
-            "soll": float(row_previous[1] or 0),
-            "cashflow": float(row_previous[2] or 0),
-        }
+        # Vergleichsjahr (nur wenn angegeben)
+        if compare_year:
+            cur.execute(sql_previous, params_previous)
+            row_previous = cur.fetchone()
+            previous_total = {
+                "haben": float(row_previous[0] or 0),
+                "soll": float(row_previous[1] or 0),
+                "cashflow": float(row_previous[2] or 0),
+            }
+        else:
+            previous_total = {
+                "haben": 0.0,
+                "soll": 0.0,
+                "cashflow": 0.0,
+            }
         
         # Kategorien aktuelles Jahr
         cur.execute(sql_cat_current, params_current)
@@ -1244,13 +1266,16 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
             for r in rows_cat_current
         ]
         
-        # Kategorien Vorjahr
-        cur.execute(sql_cat_previous, params_previous)
-        rows_cat_previous = cur.fetchall()
-        previous_categories = [
-            {"kategorie": r[0] or "", "haben": float(r[1] or 0), "soll": float(r[2] or 0)}
-            for r in rows_cat_previous
-        ]
+        # Kategorien Vergleichsjahr (nur wenn angegeben)
+        if compare_year:
+            cur.execute(sql_cat_previous, params_previous)
+            rows_cat_previous = cur.fetchall()
+            previous_categories = [
+                {"kategorie": r[0] or "", "haben": float(r[1] or 0), "soll": float(r[2] or 0)}
+                for r in rows_cat_previous
+            ]
+        else:
+            previous_categories = []
         
         # Zeitreihen
         cur.execute(sql_ts_current, params_current)
@@ -1260,12 +1285,15 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None):
             for r in rows_ts_current
         ]
         
-        cur.execute(sql_ts_previous, params_previous)
-        rows_ts_previous = cur.fetchall()
-        previous_timeseries = [
-            {"month": int(r[0]), "haben": float(r[1] or 0), "soll": float(r[2] or 0), "cashflow": float(r[3] or 0)}
-            for r in rows_ts_previous
-        ]
+        if compare_year:
+            cur.execute(sql_ts_previous, params_previous)
+            rows_ts_previous = cur.fetchall()
+            previous_timeseries = [
+                {"month": int(r[0]), "haben": float(r[1] or 0), "soll": float(r[2] or 0), "cashflow": float(r[3] or 0)}
+                for r in rows_ts_previous
+            ]
+        else:
+            previous_timeseries = []
         
         cur.close()
     
@@ -1350,16 +1378,19 @@ def analysis():
     month = filters["month"]
     konto = filters["konto"]
     kategorie_filter = filters["kategorie_filter"]
-    compare_yoy = request.args.get("compare_yoy", "1") == "1"
+    compare_year = request.args.get("compare_year", "").strip()
+    compare_year = compare_year if compare_year else None
 
     analysis_data = fetch_analysis_data(
         year,
         month,
         konto=konto or None,
         kategorie_filter=kategorie_filter or None,
+        compare_year=compare_year,
     )
 
     kategorien, konten = load_filter_data()
+    available_years = fetch_available_years()
 
     return render_template(
         "analysis.html",
@@ -1369,7 +1400,8 @@ def analysis():
         kategorie_filter=kategorie_filter,
         kategorien=kategorien,
         konten=konten,
-        compare_yoy=compare_yoy,
+        compare_year=compare_year,
+        available_years=available_years,
         analysis_data=analysis_data,
     )
 
