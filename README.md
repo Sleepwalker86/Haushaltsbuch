@@ -130,7 +130,7 @@ Das Script erledigt:
 1. `apt update` und Installation der Systempakete.
 2. Anlage des Users `finanzapp` (falls nicht vorhanden).
 3. Klonen/Update des Repos unter `/opt/finanzapp` (als User `finanzapp`).
-4. Anlage der Ordner `import/` und `imported/`.
+4. Anlage des Ordners `import/`.
 5. Erzeugung einer Python-virtualenv unter `/opt/finanzapp/venv`.
 6. Installation der Python-Abhängigkeiten in der venv.
 7. Anlegen von `config.json` (falls nicht vorhanden) mit interaktiver Abfrage von:

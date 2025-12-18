@@ -113,7 +113,7 @@ else
 fi
 
 # Unterordner erstellen
-mkdir -p "$APP_DIR/import" "$APP_DIR/imported"
+mkdir -p "$APP_DIR/import"
 chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
 
 # -----------------------------

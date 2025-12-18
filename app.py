@@ -1077,6 +1077,15 @@ def upload_csv():
     try:
         file.save(target_path)
         flash(f"Datei '{filename}' wurde nach 'import' hochgeladen.", "success")
+        
+        # Direkt nach dem Upload import_data.py ausführen
+        try:
+            subprocess.run([sys.executable, "import_data.py"], check=True, cwd=base_dir)
+            flash("Daten wurden automatisch importiert.", "success")
+        except subprocess.CalledProcessError as exc:
+            flash(f"Datei hochgeladen, aber Fehler beim Import: {exc}", "error")
+        except Exception as exc:
+            flash(f"Datei hochgeladen, aber Fehler beim Import: {exc}", "error")
     except Exception as exc:
         flash(f"CSV konnte nicht hochgeladen werden: {exc}", "error")
 

@@ -2,7 +2,6 @@ import mysql.connector
 from datetime import datetime
 import re
 import os
-import shutil
 import pandas as pd
 import json
 import csv
@@ -22,10 +21,8 @@ PAPERLESS_CONFIG = config.get("PAPERLESS", {})
 # =============================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMPORT_DIR = os.path.join(BASE_DIR, "import")
-IMPORTED_DIR = os.path.join(BASE_DIR, "imported")
 IMAGE_DIR = os.path.join(BASE_DIR, "image")
 
-os.makedirs(IMPORTED_DIR, exist_ok=True)
 os.makedirs(IMAGE_DIR, exist_ok=True)
 
 # =============================
@@ -203,7 +200,9 @@ for csv_file in csv_files:
         db.commit()
         print(f"🎉 {count} Buchungen importiert")
 
-        shutil.move(csv_path, os.path.join(IMPORTED_DIR, csv_file))
+        # Datei nach erfolgreichem Import löschen
+        os.remove(csv_path)
+        print(f"🗑️  {csv_file} wurde gelöscht")
 
     except Exception as e:
         print(f"❌ Fehler: {e}")
