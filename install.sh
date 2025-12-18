@@ -20,23 +20,70 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # -----------------------------
+# SUDO PRÜFUNG & INSTALLATION
+# -----------------------------
+if ! command -v sudo &> /dev/null; then
+    echo "⚠️  sudo ist nicht installiert. Installiere sudo..."
+    apt update
+    apt install -y sudo || {
+        echo "❌ Fehler: sudo konnte nicht installiert werden."
+        echo "   Bitte installieren Sie sudo manuell mit: apt install sudo"
+        exit 1
+    }
+    echo "✅ sudo wurde erfolgreich installiert."
+fi
+
+# -----------------------------
 # SYSTEM UPDATE
 # -----------------------------
 echo "📦 Systempakete aktualisieren..."
 apt update
 
 # -----------------------------
+# DATENBANK-AUSWAHL
+# -----------------------------
+echo ""
+echo "🗄️  Datenbank-Konfiguration"
+echo "Möchten Sie eine externe oder interne Datenbank verwenden?"
+read -p "Externe Datenbank verwenden? (j/n) [n]: " USE_EXTERNAL_DB
+USE_EXTERNAL_DB=${USE_EXTERNAL_DB:-n}
+
+if [[ "$USE_EXTERNAL_DB" =~ ^[JjYy]$ ]]; then
+    USE_INTERNAL_DB=false
+    echo "✅ Externe Datenbank wird verwendet."
+else
+    USE_INTERNAL_DB=true
+    echo "✅ Interne Datenbank wird installiert und konfiguriert."
+fi
+
+# -----------------------------
 # PAKETE
 # -----------------------------
 echo "📦 Installiere benötigte Pakete..."
-apt install -y \
-  python3 \
-  python3-venv \
-  python3-pip \
-  mariadb-client \
-  ca-certificates \
-  curl \
-  git
+if [ "$USE_INTERNAL_DB" = true ]; then
+    # Installiere MariaDB Server für interne Datenbank
+    apt install -y \
+      python3 \
+      python3-venv \
+      python3-pip \
+      mariadb-server \
+      mariadb-client \
+      ca-certificates \
+      curl \
+      git \
+      sudo
+else
+    # Nur Client für externe Datenbank
+    apt install -y \
+      python3 \
+      python3-venv \
+      python3-pip \
+      mariadb-client \
+      ca-certificates \
+      curl \
+      git \
+      sudo
+fi
 
 # -----------------------------
 # USER
@@ -70,6 +117,86 @@ mkdir -p "$APP_DIR/import" "$APP_DIR/imported"
 chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
 
 # -----------------------------
+# INTERNE DATENBANK SETUP
+# -----------------------------
+if [ "$USE_INTERNAL_DB" = true ]; then
+    echo "🗄️  Konfiguriere interne MariaDB-Datenbank..."
+    
+    # Stelle sicher, dass MariaDB läuft
+    systemctl start mariadb
+    systemctl enable mariadb
+    
+    # Warte kurz, damit MariaDB vollständig gestartet ist
+    sleep 3
+    
+    # Prüfe, ob MariaDB bereits konfiguriert ist
+    MYSQL_ROOT_PASS=""
+    if mysql -u root -e "SELECT 1" &>/dev/null 2>&1; then
+        # MariaDB hat noch kein Root-Passwort
+        echo "🔐 Setze MariaDB Root-Passwort..."
+        read -sp "MariaDB Root-Passwort setzen (Enter für automatische Generierung): " MYSQL_ROOT_PASS
+        echo
+        if [ -z "$MYSQL_ROOT_PASS" ]; then
+            MYSQL_ROOT_PASS=$(openssl rand -base64 32)
+            echo "⚠️  Kein Passwort eingegeben. Generiertes Passwort: $MYSQL_ROOT_PASS"
+            echo "⚠️  Bitte notieren Sie sich dieses Passwort!"
+        fi
+        
+        # Setze Root-Passwort
+        mysql -u root <<EOF
+ALTER USER 'root'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASS';
+FLUSH PRIVILEGES;
+EOF
+    else
+        # MariaDB hat bereits ein Root-Passwort
+        echo "🔐 MariaDB Root-Passwort existiert bereits."
+        read -sp "Bitte geben Sie das bestehende Root-Passwort ein: " MYSQL_ROOT_PASS
+        echo
+        # Teste ob das Passwort korrekt ist
+        if ! mysql -u root -p"$MYSQL_ROOT_PASS" -e "SELECT 1" &>/dev/null 2>&1; then
+            echo "❌ Falsches Root-Passwort! Bitte erneut versuchen."
+            exit 1
+        fi
+    fi
+    
+    # Sichere MariaDB-Installation durchführen
+    echo "🔒 Führe mysql_secure_installation durch..."
+    mysql -u root ${MYSQL_ROOT_PASS:+-p"$MYSQL_ROOT_PASS"} <<EOF
+DELETE FROM mysql.user WHERE User='';
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+EOF
+    
+    # Datenbank und User für die App erstellen
+    echo "📊 Erstelle Datenbank und Benutzer für die App..."
+    read -p "Datenbank-Name [Haushaltsbuch]: " DB_NAME
+    DB_NAME=${DB_NAME:-Haushaltsbuch}
+    
+    read -p "Datenbank-Benutzer [finanzapp_user]: " DB_USER
+    DB_USER=${DB_USER:-finanzapp_user}
+    
+    read -sp "Datenbank-Passwort für $DB_USER: " DB_PASS
+    echo
+    if [ -z "$DB_PASS" ]; then
+        DB_PASS=$(openssl rand -base64 24)
+        echo "⚠️  Kein Passwort eingegeben. Generiertes Passwort: $DB_PASS"
+    fi
+    
+    # Erstelle Datenbank und User
+    mysql -u root ${MYSQL_ROOT_PASS:+-p"$MYSQL_ROOT_PASS"} <<EOF
+CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+    
+    DB_HOST="127.0.0.1"
+    echo "✅ Interne Datenbank konfiguriert: $DB_NAME auf $DB_HOST"
+fi
+
+# -----------------------------
 # PYTHON VENV & ABHÄNGIGKEITEN
 # -----------------------------
 echo "🐍 Richte Python-virtualenv im App-Verzeichnis ein..."
@@ -101,18 +228,25 @@ CONFIG_FILE="$APP_DIR/config.json"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "⚙️ config.json existiert nicht, erstelle neue..."
     
-    read -p "DB Host [192.168.10.100]: " DB_HOST
-    DB_HOST=${DB_HOST:-192.168.10.100}
+    if [ "$USE_INTERNAL_DB" = true ]; then
+        # Für interne DB wurden die Werte bereits oben eingegeben
+        echo "✅ Verwende bereits konfigurierte interne Datenbank-Einstellungen..."
+        # DB_HOST, DB_USER, DB_PASS, DB_NAME sind bereits gesetzt
+    else
+        # Für externe DB müssen die Werte eingegeben werden
+        read -p "DB Host [192.168.10.100]: " DB_HOST
+        DB_HOST=${DB_HOST:-192.168.10.100}
 
-    read -p "DB User [db_user]: " DB_USER
-    DB_USER=${DB_USER:-db_user}
+        read -p "DB User [db_user]: " DB_USER
+        DB_USER=${DB_USER:-db_user}
 
-    read -sp "DB Password [1234]: " DB_PASS
-    echo
-    DB_PASS=${DB_PASS:-1234}
+        read -sp "DB Password [1234]: " DB_PASS
+        echo
+        DB_PASS=${DB_PASS:-1234}
 
-    read -p "DB Name [Haushaltsbuch]: " DB_NAME
-    DB_NAME=${DB_NAME:-Haushaltsbuch}
+        read -p "DB Name [Haushaltsbuch]: " DB_NAME
+        DB_NAME=${DB_NAME:-Haushaltsbuch}
+    fi
 
     cat > "$CONFIG_FILE" <<EOF
 {
@@ -159,10 +293,15 @@ EOF
 
 # Import-Service (einmaliger Lauf von import_data.py)
 echo "⚙️ Erstelle systemd Import-Service..."
+if [ "$USE_INTERNAL_DB" = true ]; then
+    IMPORT_AFTER="network.target mariadb.service"
+else
+    IMPORT_AFTER="network.target"
+fi
 cat > "$IMPORT_SERVICE_FILE" <<EOF
 [Unit]
 Description=Finanz App CSV-Import
-After=network.target
+After=${IMPORT_AFTER}
 
 [Service]
 Type=oneshot
