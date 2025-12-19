@@ -47,6 +47,7 @@ def parse_filter_params():
         "konto": request.args.get("konto") or "",
         "kategorie_filter": request.args.get("kategorie_filter") or "",
         "kategorie2_filter": request.args.get("kategorie2_filter") or "",
+        "beschreibung_filter": request.args.get("beschreibung_filter") or "",
         "page": page,
     }
 

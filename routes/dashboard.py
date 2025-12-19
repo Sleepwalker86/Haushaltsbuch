@@ -85,6 +85,7 @@ def dashboard():
     konto = filters["konto"]
     kategorie_filter = filters["kategorie_filter"]
     kategorie2_filter = filters["kategorie2_filter"]
+    beschreibung_filter = filters["beschreibung_filter"]
     page = filters["page"]
 
     cat_summary = fetch_category_summary(year, month)
@@ -96,6 +97,7 @@ def dashboard():
         konto=konto or None,
         kategorie_filter=kategorie_filter or None,
         kategorie2_filter=kategorie2_filter or None,
+        beschreibung_filter=beschreibung_filter or None,
     )
     einzahlungen = fetch_einzahlungen_by_iban(year, month)
 
@@ -136,6 +138,7 @@ def dashboard():
         konto=konto,
         kategorie_filter=kategorie_filter,
         kategorie2_filter=kategorie2_filter,
+        beschreibung_filter=beschreibung_filter,
         total_haben=total_haben,
         total_soll=total_soll,
         total_saldo=total_saldo,
@@ -151,6 +154,7 @@ def export_buchungen():
     konto = filters["konto"]
     kategorie_filter = filters["kategorie_filter"]
     kategorie2_filter = filters["kategorie2_filter"]
+    beschreibung_filter = filters["beschreibung_filter"]
 
     where = []
     params = []
@@ -174,6 +178,9 @@ def export_buchungen():
     if kategorie2_filter:
         where.append("kategorie2 LIKE %s")
         params.append(f"%{kategorie2_filter}%")
+    if beschreibung_filter:
+        where.append("beschreibung LIKE %s")
+        params.append(f"%{beschreibung_filter}%")
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
 
     sql = f"""
@@ -235,6 +242,7 @@ def buchungen():
     konto = filters["konto"]
     kategorie_filter = filters["kategorie_filter"]
     kategorie2_filter = filters["kategorie2_filter"]
+    beschreibung_filter = filters["beschreibung_filter"]
     page = filters["page"]
 
     buchungen_list, total_buchungen, total_pages = fetch_buchungen(
@@ -245,6 +253,7 @@ def buchungen():
         konto=konto or None,
         kategorie_filter=kategorie_filter or None,
         kategorie2_filter=kategorie2_filter or None,
+        beschreibung_filter=beschreibung_filter or None,
     )
 
     kategorien, konten = load_filter_data()
@@ -262,6 +271,7 @@ def buchungen():
         konto=konto,
         kategorie_filter=kategorie_filter,
         kategorie2_filter=kategorie2_filter,
+        beschreibung_filter=beschreibung_filter,
     )
 
 

@@ -1,4 +1,4 @@
-{% macro filter_section(filter_url, year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter, show_yoy=false, compare_year=None, available_years=None) %}
+{% macro filter_section(filter_url, year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter, beschreibung_filter=None, show_yoy=false, compare_year=None, available_years=None) %}
 <div class="mb-3">
   <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
     Filter ein-/ausklappen
@@ -70,6 +70,11 @@
                    value="{{ kategorie2_filter }}" placeholder="z.B. Lebensmittel">
           </div>
           {% endif %}
+          <div class="col-6 col-md-3">
+            <label for="beschreibung_filter" class="form-label">Beschreibung enthält</label>
+            <input type="text" class="form-control" id="beschreibung_filter" name="beschreibung_filter"
+                   value="{{ beschreibung_filter or '' }}" placeholder="z.B. Supermarkt">
+          </div>
           {% if show_yoy and available_years %}
           <div class="col-6 col-md-3">
             <label for="compare_year" class="form-label">Vergleichsjahr</label>

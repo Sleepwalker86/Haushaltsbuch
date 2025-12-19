@@ -38,7 +38,14 @@ def parse_betrag(text):
         return 0.0
 
 def normalize_text(text):
-    return " ".join(text.split()) if text else ""
+    if text is None:
+        return ""
+    # Alles in String wandeln
+    text = str(text)
+    # pandas-NaN abfangen
+    if text.strip().lower() == "nan":
+        return ""
+    return " ".join(text.split())
 
 def get_kategorie(text, kat_map):
     t = text.lower()
@@ -156,19 +163,28 @@ for csv_file in csv_files:
                 soll = 0.0
                 haben = betrag
 
+            # Werte aus DataFrame abrufen und NaN-Werte behandeln
+            # Bei pandas Series direkt auf Spalten zugreifen
+            zahlungsempfaenger = row['Zahlungsempfänger*in']
+            verwendungszweck = row['Verwendungszweck']
+            
+            # pandas NaN-Werte explizit prüfen und zu leerem String konvertieren
+            # Wichtig: pd.isna() VOR der String-Konvertierung prüfen!
+            if pd.isna(zahlungsempfaenger):
+                zahlungsempfaenger = ''
+            else:
+                zahlungsempfaenger = str(zahlungsempfaenger)
+                
+            if pd.isna(verwendungszweck):
+                verwendungszweck = ''
+            else:
+                verwendungszweck = str(verwendungszweck)
+            
             beschreibung = normalize_text(
-                f"{row.get('Zahlungsempfänger*in','')} {row.get('Verwendungszweck','')}"
+                f"{zahlungsempfaenger} {verwendungszweck}"
             )
 
             art = parse_art(str(row.get("Umsatztyp", "")))
-
-            # =============================
-            # Hier die Änderung: Einzahlungen von Sascha oder Natascha erkennen
-            sender = str(row.get("Zahlungspflichtige*r","")).strip()
-            empfänger = str(row.get("Zahlungsempfänger*in","")).strip()
-            if betrag > 0 and (sender in ["Sascha Moritz", "Natascha Moritz"] or empfänger in ["Sascha Moritz", "Natascha Moritz"]):
-                art = "Einzahlung"
-            # =============================
 
             kategorie = get_kategorie(beschreibung, kat_map)
             gegen_iban = row.get("IBAN", "")

@@ -92,7 +92,7 @@
   </div>
 </div>
 
-{{ filter_section(url_for('dashboard.dashboard'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter) }}
+{{ filter_section(url_for('dashboard.dashboard'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter, beschreibung_filter) }}
 
 <div class="row g-4 mb-4">
   <!-- Kategorien (Einnahmen/Ausgaben) -->
@@ -153,6 +153,7 @@
     {% if konto %}{% set _ = query_parts.append('konto=' + konto) %}{% endif %}
     {% if kategorie_filter %}{% set _ = query_parts.append('kategorie_filter=' + kategorie_filter) %}{% endif %}
     {% if kategorie2_filter %}{% set _ = query_parts.append('kategorie2_filter=' + kategorie2_filter) %}{% endif %}
+    {% if beschreibung_filter %}{% set _ = query_parts.append('beschreibung_filter=' + beschreibung_filter) %}{% endif %}
     <a class="btn btn-sm btn-outline-secondary"
        href="{{ url_for('dashboard.export_buchungen') }}?{{ query_parts|join('&') }}">
       CSV herunterladen
@@ -220,7 +221,7 @@
         {% set _ = month_params.append('month=' + m) %}
       {% endfor %}
       {% set month_query = month_params|join('&') %}
-      {% set base_query = 'year=' + year|string + (('&' + month_query) if month_query else '') + (('&konto=' + konto) if konto else '') + (('&kategorie_filter=' + kategorie_filter) if kategorie_filter else '') + (('&kategorie2_filter=' + kategorie2_filter) if kategorie2_filter else '') %}
+      {% set base_query = 'year=' + year|string + (('&' + month_query) if month_query else '') + (('&konto=' + konto) if konto else '') + (('&kategorie_filter=' + kategorie_filter) if kategorie_filter else '') + (('&kategorie2_filter=' + kategorie2_filter) if kategorie2_filter else '') + (('&beschreibung_filter=' + beschreibung_filter) if beschreibung_filter else '') %}
       {% if current_page > 1 %}
       <li class="page-item">
         <a class="page-link" href="{{ url_for('dashboard.dashboard') }}?{{ base_query }}&page={{ current_page-1 }}">← Zurück</a>

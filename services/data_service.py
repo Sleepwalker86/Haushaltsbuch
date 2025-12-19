@@ -181,7 +181,7 @@ def fetch_konten_details():
         ]
 
 
-def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kategorie2_filter=None, kategorie_filter=None):
+def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kategorie2_filter=None, kategorie_filter=None, beschreibung_filter=None):
     where = []
     params = []
     if year:
@@ -204,6 +204,9 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
     if kategorie2_filter:
         where.append("kategorie2 LIKE %s")
         params.append(f"%{kategorie2_filter}%")
+    if beschreibung_filter:
+        where.append("beschreibung LIKE %s")
+        params.append(f"%{beschreibung_filter}%")
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     
     # Gesamtanzahl

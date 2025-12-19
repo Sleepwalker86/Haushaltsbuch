@@ -17,7 +17,7 @@
   </div>
 {% endif %}
 
-{{ filter_section(url_for('dashboard.buchungen'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter) }}
+{{ filter_section(url_for('dashboard.buchungen'), year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter, beschreibung_filter) }}
 
 <div class="mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -73,6 +73,7 @@
               {% if konto %}{% set edit_query = edit_query + '&konto=' + konto %}{% endif %}
               {% if kategorie_filter %}{% set edit_query = edit_query + '&kategorie_filter=' + kategorie_filter %}{% endif %}
               {% if kategorie2_filter %}{% set edit_query = edit_query + '&kategorie2_filter=' + kategorie2_filter %}{% endif %}
+              {% if beschreibung_filter %}{% set edit_query = edit_query + '&beschreibung_filter=' + beschreibung_filter %}{% endif %}
               
               <a href="{{ url_for('actions.edit_buchung', buchung_id=b.id) }}?{{ edit_query }}" 
                  class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
@@ -119,7 +120,7 @@
         {% set _ = month_params.append('month=' + m) %}
       {% endfor %}
       {% set month_query = month_params|join('&') %}
-      {% set base_query = 'year=' + year|string + (('&' + month_query) if month_query else '') + (('&konto=' + konto) if konto else '') + (('&kategorie_filter=' + kategorie_filter) if kategorie_filter else '') + (('&kategorie2_filter=' + kategorie2_filter) if kategorie2_filter else '') %}
+      {% set base_query = 'year=' + year|string + (('&' + month_query) if month_query else '') + (('&konto=' + konto) if konto else '') + (('&kategorie_filter=' + kategorie_filter) if kategorie_filter else '') + (('&kategorie2_filter=' + kategorie2_filter) if kategorie2_filter else '') + (('&beschreibung_filter=' + beschreibung_filter) if beschreibung_filter else '') %}
       
       {% if current_page > 1 %}
       <li class="page-item">
