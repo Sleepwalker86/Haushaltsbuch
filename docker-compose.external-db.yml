@@ -2,10 +2,10 @@
 # Verwendung: docker compose -f docker-compose.external-db.yml up -d
 #
 # WICHTIG: Vor dem Start müssen in der .env Datei folgende Parameter gesetzt sein:
-#   DB_HOST=192.168.10.99          # IP-Adresse der externen DB
-#   DB_USER=smo                     # Datenbankbenutzer
-#   DB_PASSWORD=1234                # Passwort
-#   DB_NAME=Haushaltsbuch_test      # Datenbankname
+#   DB_HOST=192.168.10.xx           # IP-Adresse der externen DB
+#   DB_USER=db_username             # Datenbankbenutzer
+#   DB_PASSWORD=password            # Passwort
+#   DB_NAME=Haushaltsbuch           # Datenbankname
 #   SECRET_KEY=...                  # Flask Secret Key
 #   APP_PORT=5001                   # Port für die App (optional)
 
