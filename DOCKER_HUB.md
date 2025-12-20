@@ -8,13 +8,36 @@
 
 ### 2. Image bauen und taggen
 
+**WICHTIG für Multi-Architecture Support (ARM64, AMD64):**
+
 ```bash
-# Image bauen
-docker build -t sleepwalker86/finanzapp:latest .
+# Docker Buildx aktivieren (für Multi-Architecture Builds)
+docker buildx create --use --name multiarch-builder
+docker buildx inspect --bootstrap
+
+# Multi-Architecture Build (für mehrere Plattformen)
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --tag sleepwalker86/finanzapp:latest \
+  --push \
+  .
 
 # Optional: Version taggen
-docker build -t sleepwalker86/finanzapp:v1.0.0 .
-docker tag sleepwalker86/finanzapp:latest sleepwalker86/finanzapp:v1.0.0
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --tag sleepwalker86/finanzapp:v1.0.0 \
+  --push \
+  .
+```
+
+**Alternative: Nur für eine Architektur (schneller, aber nur für diese Architektur):**
+
+```bash
+# Nur für AMD64 (Standard x86_64)
+docker build -t sleepwalker86/finanzapp:latest .
+
+# Nur für ARM64 (z.B. Apple Silicon, Raspberry Pi)
+docker build --platform linux/arm64 -t sleepwalker86/finanzapp:latest .
 ```
 
 ### 3. Bei Docker Hub anmelden
@@ -25,11 +48,19 @@ docker login
 
 ### 4. Image hochladen
 
+**Wenn Sie Multi-Architecture Build verwendet haben:**
+- Das Image wurde bereits mit `--push` hochgeladen, kein separater Push nötig!
+
+**Wenn Sie nur für eine Architektur gebaut haben:**
+
 ```bash
-# Latest Version
+# Bei Docker Hub anmelden (falls noch nicht geschehen)
+docker login
+
+# Latest Version hochladen
 docker push sleepwalker86/finanzapp:latest
 
-# Versionierte Tags
+# Versionierte Tags hochladen
 docker push sleepwalker86/finanzapp:v1.0.0
 ```
 
@@ -133,6 +164,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
