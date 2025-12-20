@@ -21,6 +21,9 @@
         <h2 class="m-0 h6 fw-bold">CSV-Datei hochladen</h2>
       </div>
       <div class="card-body">
+        <p class="text-muted small mt-3">
+          Hier können die CSV Exporte verschiedener Banken hochgeladen werden.
+        </p>
         <form method="post" action="{{ url_for('upload.upload_csv') }}" enctype="multipart/form-data">
           <div class="input-group">
             <input type="file" class="form-control" name="csv_file" accept=".csv" required>
@@ -29,14 +32,8 @@
             </button>
           </div>
         </form>
-        <p class="text-muted small mt-2 mb-4">
-          Die Datei muss die folgenden Spalten haben um verarbeitet werden zu können: <code>"Buchungsdatum";"Wertstellung";"Status";"Zahlungspflichtige*r";
-            "Zahlungsempfänger*in";"Verwendungszweck";"Umsatztyp";
-            "IBAN";"Betrag (€)";"Gläubiger-ID";"Mandatsreferenz";"Kundenreferenz"
-            </code>
-        </p>
-        <p class="text-muted small">
-          Der Import läuft automatisch alle 10 Minuten über einen Timer. Hier kannst du ihn bei Bedarf manuell anstoßen.
+        <p class="text-muted small mt-3">
+          Hier kannst du ihn bei Bedarf den Import manuell anstoßen.
         </p>
         <form method="post" action="{{ url_for('actions.import_data') }}">
           <button type="submit" class="btn btn-outline-secondary w-100">
