@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+docker-compose.external-db.yml
+.dockerignore
+
+# Daten
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Projekt-spezifisch
+config.json
+.env
+.env.local
+.env.example
+import/
+image/
+
+# Installations-Skripte (nicht im Container benötigt)
+install.sh
+uninstall.sh
+
+# Dokumentation
+README.md
+*.md

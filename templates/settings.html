@@ -43,6 +43,16 @@
       Datenexport
     </button>
   </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'system' %}active{% endif %}" id="system-tab"
+            data-bs-toggle="tab" data-bs-target="#system-pane" type="button" role="tab"
+            aria-controls="system-pane" aria-selected="{% if active_tab == 'system' %}true{% else %}false{% endif %}">
+      System
+      {% if version_info.update_available %}
+        <span class="badge bg-warning text-dark ms-1">!</span>
+      {% endif %}
+    </button>
+  </li>
 </ul>
 
 <div class="tab-content" id="settingsTabsContent">
@@ -447,6 +457,69 @@
                 CSV-Datei importieren
               </button>
             </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Tab -->
+  <div class="tab-pane fade {% if active_tab == 'system' %}show active{% endif %}" id="system-pane" role="tabpanel" aria-labelledby="system-tab">
+    <div class="row g-4">
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">Versionsinformationen</h2>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Aktuelle Version:</label>
+              <div class="fs-5">{{ version_info.current }}</div>
+            </div>
+            
+            {% if version_info.error %}
+              <div class="alert alert-warning">
+                <strong>Hinweis:</strong> Versionsprüfung fehlgeschlagen: {{ version_info.error }}
+              </div>
+            {% elif version_info.latest %}
+              <div class="mb-3">
+                <label class="form-label fw-bold">Neueste Version auf Docker Hub:</label>
+                <div class="fs-5">{{ version_info.latest }}</div>
+              </div>
+              
+              {% if version_info.update_available %}
+                <div class="alert alert-info">
+                  <strong>Update verfügbar!</strong> Eine neuere Version ({{ version_info.latest }}) ist auf Docker Hub verfügbar.
+                  <div class="mt-2">
+                    <small>
+                      Um zu aktualisieren, führen Sie aus:<br>
+                      <code>docker pull sleepwalker86/finanzapp:{{ version_info.latest }}</code><br>
+                      oder<br>
+                      <code>docker compose pull && docker compose up -d</code>
+                    </small>
+                  </div>
+                </div>
+              {% else %}
+                <div class="alert alert-success">
+                  <strong>✓</strong> Sie verwenden die neueste Version.
+                </div>
+              {% endif %}
+            {% else %}
+              <div class="alert alert-secondary">
+                Versionsinformationen werden geladen...
+              </div>
+            {% endif %}
+            
+            <div class="mt-3">
+              <a href="https://hub.docker.com/r/sleepwalker86/finanzapp" 
+                 target="_blank" 
+                 class="btn btn-outline-primary btn-sm">
+                Docker Hub öffnen
+              </a>
+              <button onclick="location.reload()" class="btn btn-outline-secondary btn-sm ms-2">
+                Versionsprüfung erneut durchführen
+              </button>
+            </div>
           </div>
         </div>
       </div>

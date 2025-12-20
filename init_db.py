@@ -20,7 +20,7 @@ DDL_STATEMENTS = [
       gegen_iban VARCHAR(34) DEFAULT NULL,
       manually_edit INT(1) DEFAULT NULL,
       PRIMARY KEY (id),
-      UNIQUE KEY unique_buchung (datum, art, beschreibung, soll, haben) USING HASH
+      UNIQUE KEY unique_buchung (datum, art, beschreibung(255), soll, haben)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     """,
     """

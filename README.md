@@ -109,6 +109,98 @@ Zwei Tabs:
 
 ---
 
+## Installation mit Docker
+
+Die einfachste Methode, die Anwendung zu installieren, ist die Verwendung von Docker und Docker Compose.
+
+### Voraussetzungen
+
+- Docker (Version 20.10 oder höher)
+- Docker Compose (Version 1.29 oder höher)
+
+### Option 1: Interne Datenbank (MySQL im Container)
+
+1. **Docker Compose Dateien herunterladen:**
+   ```bash
+   curl -O https://raw.githubusercontent.com/Sleepwalker86/Haushaltsbuch/main/docker-compose.yml
+   curl -O https://raw.githubusercontent.com/Sleepwalker86/Haushaltsbuch/main/.env.example
+   ```
+
+2. **Umgebungsvariablen konfigurieren:**
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
+   
+   Wichtige Einstellungen:
+   - `MYSQL_ROOT_PASSWORD`: Root-Passwort für MySQL
+   - `MYSQL_DATABASE`: Name der Datenbank (Standard: Haushaltsbuch)
+   - `MYSQL_USER`: Datenbankbenutzer
+   - `MYSQL_PASSWORD`: Passwort für den Datenbankbenutzer
+   - `SECRET_KEY`: Sicherer Secret Key für Flask (wichtig!)
+
+3. **Container starten:**
+   
+   Die Docker Compose Dateien sind bereits so konfiguriert, dass sie das fertige Image von Docker Hub verwenden (`sleepwalker86/finanzapp:latest`).
+   
+   **Hinweis:** Falls Sie das Image lokal bauen möchten (z.B. für Entwicklung), können Sie in der `docker-compose.yml` die Zeile `image: sleepwalker86/finanzapp:latest` auskommentieren und stattdessen `build:` aktivieren.
+
+4. **Logs prüfen:**
+   ```bash
+   docker compose logs -f app
+   ```
+
+6. **Anwendung aufrufen:**
+   Öffnen Sie im Browser: `http://localhost:5001` oder `http://host-ip:5001`
+
+### Option 2: Externe Datenbank
+
+1. **Docker Compose Dateien herunterladen:**
+   ```bash
+   curl -O https://raw.githubusercontent.com/Sleepwalker86/Haushaltsbuch/main/docker-compose.external-db.yml
+   curl -O https://raw.githubusercontent.com/Sleepwalker86/Haushaltsbuch/main/.env.example
+   ```
+
+2. **Umgebungsvariablen konfigurieren:**
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
+   
+   Wichtige Einstellungen:
+   - `DB_HOST`: IP-Adresse oder Hostname der externen Datenbank
+   - `DB_USER`: Datenbankbenutzer
+   - `DB_PASSWORD`: Passwort für den Datenbankbenutzer
+   - `DB_NAME`: Name der Datenbank
+   - `SECRET_KEY`: Sicherer Secret Key für Flask (wichtig!)
+
+3. **Container starten:**
+   
+   Die Docker Compose Dateien sind bereits so konfiguriert, dass sie das fertige Image von Docker Hub verwenden (`sleepwalker86/finanzapp:latest`).
+   
+   **Hinweis:** Falls Sie das Image lokal bauen möchten (z.B. für Entwicklung), können Sie in der `docker-compose.external-db.yml` die Zeile `image: sleepwalker86/finanzapp:latest` auskommentieren und stattdessen `build:` aktivieren.
+
+4. **Logs prüfen:**
+   ```bash
+   docker compose -f docker-compose.external-db.yml logs -f app
+   ```
+
+6. **Anwendung aufrufen:**
+   Öffnen Sie im Browser: `http://localhost:5001` oder `http://host-ip:5001`
+
+### Wichtige Hinweise
+
+- **Externe Datenbank:** Stellen Sie sicher, dass die Datenbank Remote-Verbindungen erlaubt (MySQL `bind-address = 0.0.0.0`)
+- **Firewall:** Port 3306 muss vom Container aus erreichbar sein
+- **Benutzerrechte:** Der Datenbankbenutzer muss die entsprechenden Rechte haben (CREATE, INSERT, UPDATE, DELETE, SELECT)
+- **Nach .env Änderungen:** Container neu starten mit `docker compose restart app`
+
+### Weitere Informationen
+
+Für detaillierte Docker-Dokumentation siehe [DOCKER.md](https://github.com/Sleepwalker86/Haushaltsbuch/blob/main/DOCKER.md) im Repository.
+
+---
+
 ## Installation (Server)
 
 ### 1. Repository nach `/opt` klonen

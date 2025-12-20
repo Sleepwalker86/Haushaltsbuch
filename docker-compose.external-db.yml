@@ -1,0 +1,45 @@
+# docker-compose.yml für externe Datenbank
+# Verwendung: docker compose -f docker-compose.external-db.yml up -d
+#
+# WICHTIG: Vor dem Start müssen in der .env Datei folgende Parameter gesetzt sein:
+#   DB_HOST=192.168.10.xx           # IP-Adresse der externen DB
+#   DB_USER=db_username             # Datenbankbenutzer
+#   DB_PASSWORD=password            # Passwort
+#   DB_NAME=Haushaltsbuch           # Datenbankname
+#   SECRET_KEY=...                  # Flask Secret Key
+#   APP_PORT=5001                   # Port für die App (optional)
+
+name: finanzapp
+
+services:
+  app:
+    image: sleepwalker86/finanzapp:latest
+    # Alternative: Lokaler Build (auskommentieren Sie 'image' und aktivieren Sie 'build')
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: finanzapp
+    restart: unless-stopped
+    # Kein depends_on, da externe DB verwendet wird
+    environment:
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - SECRET_KEY=${SECRET_KEY}
+      - PAPERLESS_IP=${PAPERLESS_IP:-}
+      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN:-}
+      - PAPERLESS_DOCUMENT_TYPE_ID=${PAPERLESS_DOCUMENT_TYPE_ID:-}
+      - PAPERLESS_ENABLED=${PAPERLESS_ENABLED:-false}
+    volumes:
+      - ./import:/app/import
+      - ./image:/app/image
+    ports:
+      - "${APP_PORT:-5001}:5001"
+    networks:
+      - finanzapp_network
+
+networks:
+  finanzapp_network:
+    driver: bridge
