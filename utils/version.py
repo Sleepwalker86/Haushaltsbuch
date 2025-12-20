@@ -5,7 +5,7 @@ from packaging import version
 
 
 # Aktuelle Version der Anwendung
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.0.1"
 
 # Docker Hub Repository
 DOCKER_HUB_REPO = "sleepwalker86/finanzapp"

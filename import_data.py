@@ -113,6 +113,8 @@ kat_map = dict(cursor.fetchall())
 # =============================
 # CSV VERARBEITUNG
 # =============================
+from utils.csv_parser import BankCSVParser
+
 csv_files = [f for f in os.listdir(IMPORT_DIR) if f.lower().endswith(".csv")]
 
 for csv_file in csv_files:
@@ -120,108 +122,90 @@ for csv_file in csv_files:
     print(f"📄 Lese CSV: {csv_file}")
 
     try:
-        # Datei roh einlesen (für Kopfzeilen)
-        with open(csv_path, "r", encoding="utf-8", errors="ignore") as f:
-            lines = f.readlines()
-
-        eigene_iban = None
-        header_line = None
-
-        for i, line in enumerate(lines):
-            clean = line.strip().replace("\ufeff", "")
-
-            if "Girokonto" in clean and ";" in clean:
-                eigene_iban = clean.split(";")[1].replace('"', '').strip()
-
-            if "Buchungsdatum" in clean and "Betrag" in clean:
-                header_line = i
-                break
-
-        if not eigene_iban or header_line is None:
-            print("❌ IBAN oder Header nicht gefunden")
-            continue
-
-        # CSV ab Header laden
-        df = pd.read_csv(
-            csv_path,
-            sep=";",
-            skiprows=header_line,
-            quotechar='"',
-            encoding="utf-8"
-        )
+        # Verwende robusten CSV-Parser
+        parser = BankCSVParser(csv_path)
+        df, eigene_iban, column_mapping = parser.parse()
+        
+        print(f"   ✅ Format erkannt:")
+        print(f"      - Encoding: {parser.encoding}")
+        print(f"      - Trennzeichen: {parser.delimiter}")
+        print(f"      - Header-Zeile: {parser.header_row + 1}")
+        if eigene_iban:
+            print(f"      - IBAN: {eigene_iban}")
+        print(f"      - Spalten-Mapping: {column_mapping}")
 
         count = 0
+        error_count = 0
 
         for _, row in df.iterrows():
-            datum = datetime.strptime(row["Buchungsdatum"], "%d.%m.%y").date()
-            betrag = parse_betrag(str(row["Betrag (€)"]))
-
-            if betrag < 0:
-                soll = abs(betrag)
-                haben = 0.0
-            else:
-                soll = 0.0
-                haben = betrag
-
-            # Werte aus DataFrame abrufen und NaN-Werte behandeln
-            # Bei pandas Series direkt auf Spalten zugreifen
-            zahlungsempfaenger = row['Zahlungsempfänger*in']
-            verwendungszweck = row['Verwendungszweck']
-            
-            # pandas NaN-Werte explizit prüfen und zu leerem String konvertieren
-            # Wichtig: pd.isna() VOR der String-Konvertierung prüfen!
-            if pd.isna(zahlungsempfaenger):
-                zahlungsempfaenger = ''
-            else:
-                zahlungsempfaenger = str(zahlungsempfaenger)
+            try:
+                # Daten extrahieren
+                row_data = parser.extract_row_data(row)
                 
-            if pd.isna(verwendungszweck):
-                verwendungszweck = ''
-            else:
-                verwendungszweck = str(verwendungszweck)
-            
-            beschreibung = normalize_text(
-                f"{zahlungsempfaenger} {verwendungszweck}"
-            )
-
-            art = parse_art(str(row.get("Umsatztyp", "")))
-
-            kategorie = get_kategorie(beschreibung, kat_map)
-            gegen_iban = row.get("IBAN", "")
-
-            # DUPLIKATSPRÜFUNG
-            cursor.execute("""
-                SELECT COUNT(*) FROM buchungen
-                WHERE datum=%s AND beschreibung=%s AND soll=%s AND haben=%s
-                AND konto=%s AND gegen_iban=%s
-            """, (datum, beschreibung, soll, haben, eigene_iban, gegen_iban))
-
-            if cursor.fetchone()[0] == 0:
+                # Prüfe ob Datum und Betrag vorhanden
+                if row_data['datum'] is None:
+                    error_count += 1
+                    continue
+                
+                datum = row_data['datum'].date()
+                betrag = row_data['betrag']
+                
+                # Soll/Haben bestimmen
+                if betrag < 0:
+                    soll = abs(betrag)
+                    haben = 0.0
+                else:
+                    soll = 0.0
+                    haben = betrag
+                
+                beschreibung = normalize_text(row_data['beschreibung'])
+                art = parse_art(row_data['art'])
+                kategorie = get_kategorie(beschreibung, kat_map)
+                gegen_iban = row_data['gegen_iban']
+                konto = row_data['konto'] or eigene_iban or ''
+                
+                # DUPLIKATSPRÜFUNG
                 cursor.execute("""
-                    INSERT INTO buchungen
-                    (datum, art, beschreibung, soll, haben, kategorie, konto, gegen_iban)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                """, (
-                    datum,
-                    art,
-                    beschreibung,
-                    soll,
-                    haben,
-                    kategorie,
-                    eigene_iban,
-                    gegen_iban
-                ))
-                count += 1
+                    SELECT COUNT(*) FROM buchungen
+                    WHERE datum=%s AND beschreibung=%s AND soll=%s AND haben=%s
+                    AND konto=%s AND gegen_iban=%s
+                """, (datum, beschreibung, soll, haben, konto, gegen_iban))
+
+                if cursor.fetchone()[0] == 0:
+                    cursor.execute("""
+                        INSERT INTO buchungen
+                        (datum, art, beschreibung, soll, haben, kategorie, konto, gegen_iban)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                    """, (
+                        datum,
+                        art,
+                        beschreibung,
+                        soll,
+                        haben,
+                        kategorie,
+                        konto,
+                        gegen_iban
+                    ))
+                    count += 1
+            except Exception as e:
+                error_count += 1
+                print(f"   ⚠️  Fehler bei Zeile: {e}")
+                continue
 
         db.commit()
         print(f"🎉 {count} Buchungen importiert")
+        if error_count > 0:
+            print(f"⚠️  {error_count} Zeilen konnten nicht importiert werden")
 
         # Datei nach erfolgreichem Import löschen
         os.remove(csv_path)
         print(f"🗑️  {csv_file} wurde gelöscht")
 
     except Exception as e:
-        print(f"❌ Fehler: {e}")
+        import traceback
+        print(f"❌ Fehler beim Verarbeiten von {csv_file}: {e}")
+        print(f"   Details: {traceback.format_exc()}")
+        # Datei nicht löschen bei Fehler, damit sie manuell geprüft werden kann
 
 cursor.close()
 db.close()
