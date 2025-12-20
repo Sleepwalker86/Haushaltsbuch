@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from db import get_connection
 from utils.helpers import load_config, save_config
 from services.data_service import fetch_konten_details, fetch_category_master, fetch_keyword_mappings
+from utils.version import CURRENT_VERSION, is_update_available
 
 bp = Blueprint('settings', __name__)
 
@@ -290,8 +291,26 @@ def settings():
     except Exception:
         pass
 
+    # Versionsprüfung
+    version_info = {
+        "current": CURRENT_VERSION,
+        "latest": None,
+        "update_available": False,
+        "error": None
+    }
+    
+    # Versionsprüfung nur bei GET-Request und wenn Tab "system" ist (oder beim ersten Laden)
+    if request.method == "GET":
+        try:
+            update_available, latest_version, error = is_update_available()
+            version_info["latest"] = latest_version
+            version_info["update_available"] = update_available
+            version_info["error"] = error
+        except Exception as e:
+            version_info["error"] = f"Fehler bei Versionsprüfung: {str(e)}"
+
     active_tab = request.args.get("tab")
-    if active_tab not in ("konten", "keywords", "paperless", "export"):
+    if active_tab not in ("konten", "keywords", "paperless", "export", "system"):
         active_tab = "konten"
 
     return render_template(
@@ -302,6 +321,7 @@ def settings():
         keyword_mappings=keyword_mappings,
         edit_mapping=edit_mapping,
         paperless_config=paperless_config,
+        version_info=version_info,
         active_tab=active_tab,
     )
 
