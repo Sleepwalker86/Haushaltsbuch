@@ -10,11 +10,11 @@
 
 ```bash
 # Image bauen
-docker build -t dein-username/finanzapp:latest .
+docker build -t sleepwalker86/finanzapp:latest .
 
 # Optional: Version taggen
-docker build -t dein-username/finanzapp:v1.0.0 .
-docker tag dein-username/finanzapp:latest dein-username/finanzapp:v1.0.0
+docker build -t sleepwalker86/finanzapp:v1.0.0 .
+docker tag sleepwalker86/finanzapp:latest sleepwalker86/finanzapp:v1.0.0
 ```
 
 ### 3. Bei Docker Hub anmelden
@@ -27,10 +27,10 @@ docker login
 
 ```bash
 # Latest Version
-docker push dein-username/finanzapp:latest
+docker push sleepwalker86/finanzapp:latest
 
 # Versionierte Tags
-docker push dein-username/finanzapp:v1.0.0
+docker push sleepwalker86/finanzapp:v1.0.0
 ```
 
 ## Docker Hub Repository Beschreibung
@@ -78,7 +78,7 @@ docker run -d \
   -e DB_PASSWORD=password \
   -e DB_NAME=Haushaltsbuch \
   -e SECRET_KEY=your-secret-key \
-  dein-username/finanzapp:latest
+  sleepwalker86/finanzapp:latest
 ```
 
 ## Tags
@@ -121,7 +121,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: dein-username/finanzapp
+          images: sleepwalker86/finanzapp
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -181,5 +181,5 @@ docker run -d \
   -e DB_PASSWORD=password \
   -e DB_NAME=Haushaltsbuch \
   -e SECRET_KEY=your-secret-key \
-  dein-username/finanzapp:latest
+  sleepwalker86/finanzapp:latest
 ```

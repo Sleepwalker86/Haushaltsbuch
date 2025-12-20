@@ -12,7 +12,7 @@ Dieses Projekt kann mit Docker und Docker Compose ausgeführt werden.
 Das fertige Docker-Image ist auf Docker Hub verfügbar:
 
 ```bash
-docker pull dein-username/finanzapp:latest
+docker pull sleepwalker86/finanzapp:latest
 ```
 
 **Wichtig:** Die `docker-compose.yml` Dateien sind **nicht** im Docker-Image enthalten. 
@@ -74,7 +74,7 @@ cd Haushaltsbuch
      dockerfile: Dockerfile
    
    # Verwenden Sie:
-   image: dein-username/finanzapp:latest
+   image: sleepwalker86/finanzapp:latest
    ```
 
 4. **Container starten:**

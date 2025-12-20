@@ -148,8 +148,8 @@ Die einfachste Methode, die Anwendung zu installieren, ist die Verwendung von Do
      context: .
      dockerfile: Dockerfile
    
-   # Verwenden Sie (mit Ihrem Docker Hub Username):
-   image: dein-username/finanzapp:latest
+   # Verwenden Sie:
+   image: sleepwalker86/finanzapp:latest
    ```
 
 4. **Container starten:**
@@ -195,8 +195,8 @@ Die einfachste Methode, die Anwendung zu installieren, ist die Verwendung von Do
      context: .
      dockerfile: Dockerfile
    
-   # Verwenden Sie (mit Ihrem Docker Hub Username):
-   image: dein-username/finanzapp:latest
+   # Verwenden Sie:
+   image: sleepwalker86/finanzapp:latest
    ```
 
 4. **Container starten:**
@@ -221,7 +221,7 @@ Die einfachste Methode, die Anwendung zu installieren, ist die Verwendung von Do
 
 ### Weitere Informationen
 
-Für detaillierte Docker-Dokumentation siehe `DOCKER.md` im Repository.
+Für detaillierte Docker-Dokumentation siehe [DOCKER.md](https://github.com/Sleepwalker86/Haushaltsbuch/blob/main/DOCKER.md) im Repository.
 
 ---
 

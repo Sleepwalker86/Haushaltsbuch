@@ -66,9 +66,10 @@ echo ""
 echo "🔧 Passe Docker Compose Datei an..."
 
 # Frage nach Docker Hub Username
-read -p "Docker Hub Username (oder Enter für lokalen Build): " DOCKER_USERNAME
+read -p "Docker Hub Username [sleepwalker86] (oder Enter für lokalen Build): " DOCKER_USERNAME
+DOCKER_USERNAME=${DOCKER_USERNAME:-sleepwalker86}
 
-if [ -n "$DOCKER_USERNAME" ]; then
+if [ -n "$DOCKER_USERNAME" ] && [ "$DOCKER_USERNAME" != "" ]; then
     # Ersetze build durch image
     if [ "$DB_CHOICE" = "1" ]; then
         sed -i.bak 's|build:|# build:|g; s|context: .|# context: .|g; s|dockerfile: Dockerfile|# dockerfile: Dockerfile|g' docker-compose.yml
