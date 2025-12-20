@@ -23,9 +23,11 @@ services:
       - finanzapp_network
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: sleepwalker86/finanzapp:latest
+    # Alternative: Lokaler Build (auskommentieren Sie 'image' und aktivieren Sie 'build')
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: finanzapp
     restart: unless-stopped
     depends_on:

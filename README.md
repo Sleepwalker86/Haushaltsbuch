@@ -139,25 +139,13 @@ Die einfachste Methode, die Anwendung zu installieren, ist die Verwendung von Do
    - `MYSQL_PASSWORD`: Passwort für den Datenbankbenutzer
    - `SECRET_KEY`: Sicherer Secret Key für Flask (wichtig!)
 
-3. **Docker Compose Datei anpassen (falls Docker Hub Image verwendet wird):**
+3. **Container starten:**
    
-   Öffnen Sie `docker-compose.yml` und ändern Sie:
-   ```yaml
-   # Statt:
-   build:
-     context: .
-     dockerfile: Dockerfile
+   Die Docker Compose Dateien sind bereits so konfiguriert, dass sie das fertige Image von Docker Hub verwenden (`sleepwalker86/finanzapp:latest`).
    
-   # Verwenden Sie:
-   image: sleepwalker86/finanzapp:latest
-   ```
+   **Hinweis:** Falls Sie das Image lokal bauen möchten (z.B. für Entwicklung), können Sie in der `docker-compose.yml` die Zeile `image: sleepwalker86/finanzapp:latest` auskommentieren und stattdessen `build:` aktivieren.
 
-4. **Container starten:**
-   ```bash
-   docker compose up -d
-   ```
-
-5. **Logs prüfen:**
+4. **Logs prüfen:**
    ```bash
    docker compose logs -f app
    ```
@@ -186,25 +174,13 @@ Die einfachste Methode, die Anwendung zu installieren, ist die Verwendung von Do
    - `DB_NAME`: Name der Datenbank
    - `SECRET_KEY`: Sicherer Secret Key für Flask (wichtig!)
 
-3. **Docker Compose Datei anpassen (falls Docker Hub Image verwendet wird):**
+3. **Container starten:**
    
-   Öffnen Sie `docker-compose.external-db.yml` und ändern Sie:
-   ```yaml
-   # Statt:
-   build:
-     context: .
-     dockerfile: Dockerfile
+   Die Docker Compose Dateien sind bereits so konfiguriert, dass sie das fertige Image von Docker Hub verwenden (`sleepwalker86/finanzapp:latest`).
    
-   # Verwenden Sie:
-   image: sleepwalker86/finanzapp:latest
-   ```
+   **Hinweis:** Falls Sie das Image lokal bauen möchten (z.B. für Entwicklung), können Sie in der `docker-compose.external-db.yml` die Zeile `image: sleepwalker86/finanzapp:latest` auskommentieren und stattdessen `build:` aktivieren.
 
-4. **Container starten:**
-   ```bash
-   docker compose -f docker-compose.external-db.yml up -d
-   ```
-
-5. **Logs prüfen:**
+4. **Logs prüfen:**
    ```bash
    docker compose -f docker-compose.external-db.yml logs -f app
    ```
