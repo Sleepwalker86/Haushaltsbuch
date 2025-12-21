@@ -2,37 +2,35 @@
 
 ## Übersicht
 
-Dieses Projekt ist ein persönliches Haushaltsbuch, das Bankumsätze aus CSV-Dateien einliest, strukturiert in eine MySQL/MariaDB-Datenbank speichert und sie anschließend in einer responsiven Web-App visualisiert.
+Mit dieser Anwendung können Sie Ihre Finanzen einfach und übersichtlich verwalten. Laden Sie Ihre Bankumsätze als CSV-Dateien hoch, und die Anwendung organisiert alles automatisch für Sie.
 
-Die Weboberfläche (Flask + Bootstrap) bietet:
+**Was die Anwendung für Sie tut:**
 
 - Manuelles Erfassen von Buchungen (z. B. Barzahlungen)
 - Automatisierten CSV-Import (z. B. aus Online-Banking-Exporten)
-- Kategorisierung von Umsätzen (inkl. Unterkategorie)
-- Dashboard mit Diagrammen (Kategorien, Ausgaben, Einzahlungen)
-- Verwaltung von Konten (Name, IBAN, Beschreibung)
-- Zeitgesteuerten Import über systemd-Timer auf dem Server
-- Erweiterte Filterung (Jahr, Monat, Konto, Kategorie, Unterkategorie)
-- CSV-Export der gefilterten Buchungen
-- Paperless-Integration: Dokumente fotografieren und automatisch an Paperless senden
-- Manuell bearbeitete Buchungen kennzeichnen (`manually_edit` Toggle)
+- **Übersichtliches Dashboard**: Sehen Sie auf einen Blick Ihre Einnahmen, Ausgaben und den aktuellen Saldo
+- **Detaillierte Analysen**: Verschiedene Diagramme zeigen Ihnen, wofür Sie Ihr Geld ausgeben und wo Sie sparen können
+- **Flexible Filterung**: Filtern Sie nach Zeitraum, Konto, Kategorie oder suchen Sie nach bestimmten Beschreibungen
+- **Manuelle Buchungen**: Erfassen Sie auch Barzahlungen oder andere Buchungen, die nicht über die Bank laufen
+- **Kontenverwaltung**: Verwalten Sie mehrere Konten (Girokonto, Sparkonto, etc.) in einer Übersicht
+- **Dokumentenverwaltung**: Integrieren Sie Paperless-ngx, um Belege automatisch zu archivieren
 
 ---
 
 ## Funktionen im Detail
 
-### Dashboard (`/dashboard`)
+### Dashboard – Ihre Finanzübersicht
 
-- **Filter**: Jahr, Monat, Konto (IBAN), Kategorie (Dropdown), Unterkategorie (Freitext).
-- **Diagramme (Chart.js)**:
-  - Kategorien (Einnahmen/Ausgaben) als gestapeltes Balkendiagramm inkl. Summen (gesamt Einnahmen/Ausgaben).
-  - Ausgaben (Kategorien) als Tortendiagramm.
-  - Einzahlungen nach IBAN als Balkendiagramm.
-- **Buchungstabelle**:
-  - Spalten: Datum, Art, Beschreibung, Soll, Haben, Kategorie, Unterkategorie.
-  - Paginierung (30 Einträge pro Seite).
-  - Bearbeiten-Button je Buchung → `/edit/<id>`.
-  - **CSV-Export**: Button zum Herunterladen aller gefilterten Buchungen als CSV-Datei.
+Das Dashboard ist Ihr zentraler Einstiegspunkt. Hier sehen Sie:
+
+- **Übersichtskarten**: Aktueller Saldo, Einnahmen und Ausgaben des Monats, sowie Ihr Cashflow auf einen Blick
+- **Interaktive Diagramme**: 
+  - Balkendiagramme zeigen Ihre Einnahmen und Ausgaben nach Kategorien
+  - Tortendiagramme visualisieren, wofür Sie am meisten Geld ausgeben
+  - Einzahlungen werden nach Konten aufgeschlüsselt
+- **Buchungsübersicht**: Alle Ihre Buchungen in einer übersichtlichen Tabelle
+- **Flexible Filterung**: Filtern Sie nach Jahr, Monat, Konto, Kategorie oder suchen Sie nach bestimmten Begriffen in der Beschreibung
+- **Export-Funktion**: Laden Sie Ihre gefilterten Buchungen als CSV-Datei herunter, z. B. für Excel oder andere Programme
 
 ![Dashboard](pictures/dashboard.png)
 *Dashboard mit Übersichtskarten, Diagrammen und Buchungstabelle*
@@ -40,36 +38,35 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
 ![Buchungen filtern](pictures/buchung_filtern.png)
 *Buchungen-Übersicht mit Filterung und Paginierung*
 
-### Buchung erfassen (`/`)
+### Buchungen manuell erfassen
 
-- Felder:
-  - Datum
-  - Typ (Ausgaben / Einnahmen)
-  - Konto (Dropdown aus `konten`-Tabelle, Pflichtfeld)
-  - Kategorie (Dropdown aus `keyword_category`-Tabelle)
-  - Unterkategorie (`kategorie2`, Freitext)
-  - Betrag (Komma/Punkt als Dezimaltrenner)
-  - Beschreibung
-- Speicherung:
-  - Tabelle `buchungen`
-  - Ausgaben → `soll`, Einnahmen → `haben`
-  - `manually_edit = 1` zur Kennzeichnung manueller Einträge.
+Nicht alle Ausgaben laufen über die Bank. Erfassen Sie Barzahlungen, Spenden oder andere Buchungen einfach manuell:
+
+- **Datum**: Wann fand die Buchung statt?
+- **Typ**: Handelt es sich um eine Ausgabe oder Einnahme?
+- **Konto**: Wählen Sie das betroffene Konto aus Ihrer Kontenliste
+- **Kategorie**: Wählen Sie die passende Kategorie (z. B. "Lebensmittel", "Tanken", "Gehalt")
+- **Unterkategorie**: Optional können Sie eine Unterkategorie angeben (z. B. "Bio-Lebensmittel")
+- **Betrag**: Geben Sie den Betrag ein (Komma oder Punkt als Dezimaltrenner funktioniert)
+- **Beschreibung**: Beschreiben Sie kurz, worum es sich handelt
+
+Manuell erfasste Buchungen werden automatisch markiert, damit sie bei späteren CSV-Imports nicht überschrieben werden.
 
 ![Buchung erfassen](pictures/buchung_erfassen.png)
 *Formular zum manuellen Erfassen von Buchungen*
 
-### Buchung bearbeiten / löschen (`/edit/<id>`, `/delete/<id>`)
+### Buchungen bearbeiten oder löschen
 
-- Bearbeiten:
-  - Alle Felder der Buchung änderbar.
-  - **Manually_edit Toggle**: Switch zum Ein-/Ausschalten der `manually_edit`-Kennzeichnung.
-    - Wenn aktiviert: Buchung wird als manuell bearbeitet markiert (neue Kategorien werden nicht automatisch gesetzt).
-    - Standard: Beim Speichern wird `manually_edit = 1` gesetzt, kann aber deaktiviert werden.
-- Löschen:
-  - Separater Button mit Sicherheitsabfrage (`confirm`).
-  - Löscht aus `buchungen` und leitet zurück ins Dashboard inkl. Filter.
+Haben Sie einen Fehler gemacht oder möchten Sie eine Buchung korrigieren? Kein Problem:
 
-### Erweiterte Analyse (`/analysis`)
+- **Bearbeiten**: Klicken Sie auf das Bearbeiten-Symbol bei einer Buchung. Sie können alle Angaben ändern:
+  - Datum, Betrag, Beschreibung
+  - Kategorie und Unterkategorie
+  - Ob es sich um eine Ausgabe oder Einnahme handelt
+  - **Schutz vor Überschreibung**: Aktivieren Sie die Option "Manuell bearbeitet", damit die Buchung bei späteren CSV-Imports nicht automatisch neu kategorisiert wird
+- **Löschen**: Möchten Sie eine Buchung entfernen? Klicken Sie auf das Löschen-Symbol. Zur Sicherheit werden Sie noch einmal gefragt, bevor die Buchung endgültig gelöscht wird.
+
+### Erweiterte Analyse
 
 Die Analyse-Seite bietet umfangreiche Visualisierungen und Statistiken:
 
@@ -90,9 +87,9 @@ Die Analyse-Seite bietet umfangreiche Visualisierungen und Statistiken:
 ![Erweiterte Analyse](pictures/erweiterte_analyse.png)
 *Vergleichsansicht mit verschiedenen Zeiträumen*
 
-### Einstellungen & Kontenverwaltung (`/settings`)
+### Einstellungen – Alles im Griff
 
-Zwei Tabs:
+In den Einstellungen verwalten Sie alle wichtigen Konfigurationen:
 
 - **CSV Upload & Import**
   - CSV-Datei hochladen (`/upload_csv`): Datei wird in den Ordner `import/` gespeichert.
@@ -100,24 +97,24 @@ Zwei Tabs:
     - „Kategorien neu laden“ → ruft `reload_category.py` auf.
     - „CSV Daten einlesen“ → ruft `import_data.py` auf.
 
-- **Konten & Einstellungen**
-  - Konto anlegen/bearbeiten:
-    - Name
-    - Beschreibung
-    - IBAN
-  - Liste vorhandener Konten aus Tabelle `konten` mit Bearbeiten- und Löschen-Icon:
-    - Klick lädt das Konto in das Formular zum Editieren (selber Tab).
-    - Löschen mit Sicherheitsabfrage.
+**Kontenverwaltung**
+- Legen Sie alle Ihre Konten an (Girokonto, Sparkonto, etc.)
+- Für jedes Konto können Sie Name, IBAN und eine Beschreibung hinterlegen
+- Konten können jederzeit bearbeitet oder gelöscht werden
 
-- **Kategorien & Schlüsselwörter**
-  - **Kategorien-Stammdaten**: Kategorien aus der `category`-Tabelle anlegen und löschen.
-  - **Schlüsselwort-Zuordnungen**: Zuordnungen zwischen Schlüsselwörtern und Kategorien in der `keyword_category`-Tabelle verwalten (anlegen, bearbeiten, löschen).
+**Kategorien & Zuordnungen**
+- Erstellen Sie Ihre eigenen Kategorien (z. B. "Lebensmittel", "Freizeit", "Auto")
+- Legen Sie fest, welche Schlüsselwörter welcher Kategorie zugeordnet werden sollen
+  - Beispiel: Wenn "REWE" in der Beschreibung steht → Kategorie "Supermarkt"
+  - So werden Ihre Buchungen automatisch richtig kategorisiert
 
-- **Paperless**
-  - Paperless-API-Konfiguration:
-    - Paperless-URL/IP-Adresse
-    - API-Token
-    - Dokumententyp-ID
+**Paperless-Integration** (optional)
+- Wenn Sie Paperless-ngx für die Dokumentenverwaltung nutzen, können Sie hier die Verbindung konfigurieren
+- Belege, die Sie fotografieren, werden automatisch an Paperless gesendet
+
+**System-Informationen**
+- Sehen Sie die aktuelle Version der Anwendung
+- Prüfen Sie, ob ein Update verfügbar ist
 
 ![Einstellungen](pictures/settings.png)
 *Einstellungen mit verschiedenen Tabs: Konten, Kategorien, Paperless, System*

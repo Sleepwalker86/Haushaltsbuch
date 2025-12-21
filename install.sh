@@ -74,13 +74,13 @@ if [ "$USE_INTERNAL_DB" = true ]; then
       sudo
 else
     # Nur Client für externe Datenbank
-    apt install -y \
-      python3 \
-      python3-venv \
-      python3-pip \
-      mariadb-client \
-      ca-certificates \
-      curl \
+apt install -y \
+  python3 \
+  python3-venv \
+  python3-pip \
+  mariadb-client \
+  ca-certificates \
+  curl \
       git \
       sudo
 fi
@@ -234,15 +234,15 @@ if [ ! -f "$CONFIG_FILE" ]; then
         # DB_HOST, DB_USER, DB_PASS, DB_NAME sind bereits gesetzt
     else
         # Für externe DB müssen die Werte eingegeben werden
-        read -p "DB Host [192.168.10.100]: " DB_HOST
-        DB_HOST=${DB_HOST:-192.168.10.100}
+    read -p "DB Host [192.168.10.100]: " DB_HOST
+    DB_HOST=${DB_HOST:-192.168.10.100}
 
-        read -p "DB User [db_user]: " DB_USER
-        DB_USER=${DB_USER:-db_user}
+    read -p "DB User [db_user]: " DB_USER
+    DB_USER=${DB_USER:-db_user}
 
-        read -sp "DB Password [1234]: " DB_PASS
-        echo
-        DB_PASS=${DB_PASS:-1234}
+    read -sp "DB Password [1234]: " DB_PASS
+    echo
+    DB_PASS=${DB_PASS:-1234}
 
     read -p "DB Name [Haushaltsbuch]: " DB_NAME
     DB_NAME=${DB_NAME:-Haushaltsbuch}
