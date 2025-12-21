@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, flash, url_for
 from werkzeug.utils import secure_filename
 import os
+import re
 import subprocess
 import sys
 
@@ -73,12 +74,28 @@ def upload_csv():
     target_path = os.path.join(import_dir, filename)
     try:
         file.save(target_path)
-        flash(f"Datei '{filename}' wurde nach 'import' hochgeladen.", "success")
         
         # Direkt nach dem Upload import_data.py ausführen
         try:
-            subprocess.run([sys.executable, "import_data.py"], check=True, cwd=base_dir)
-            flash("Daten wurden automatisch importiert.", "success")
+            result = subprocess.run(
+                [sys.executable, "import_data.py"], 
+                check=True, 
+                cwd=base_dir,
+                capture_output=True,
+                text=True
+            )
+            
+            # Anzahl der importierten Buchungen aus dem Output extrahieren
+            total_imported = 0
+            # Suche nach "🎉 X Buchungen importiert" im Output
+            matches = re.findall(r'🎉\s*(\d+)\s*Buchungen importiert', result.stdout)
+            if matches:
+                total_imported = sum(int(m) for m in matches)
+            
+            if total_imported > 0:
+                flash(f"Daten wurden importiert und automatisch verarbeitet. {total_imported} Buchung(en) wurden importiert.", "success")
+            else:
+                flash("Daten wurden importiert und automatisch verarbeitet. Keine neuen Buchungen gefunden (möglicherweise Duplikate).", "success")
         except subprocess.CalledProcessError as exc:
             flash(f"Datei hochgeladen, aber Fehler beim Import: {exc}", "error")
         except Exception as exc:

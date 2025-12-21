@@ -2,7 +2,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="mb-0">Buchung bearbeiten</h1>
-  <a href="{{ url_for('dashboard.dashboard', year=request.args.get('year'), month=request.args.get('month'), page=request.args.get('page', 1)) }}" class="btn btn-outline-secondary">Zurück zum Dashboard</a>
+  {% if request.args.get('return_to') == 'buchungen' %}
+    <a href="{{ url_for('dashboard.buchungen', year=request.args.get('year'), month=request.args.getlist('month'), page=request.args.get('page', 1), konto=request.args.get('konto', ''), kategorie_filter=request.args.get('kategorie_filter', ''), kategorie2_filter=request.args.get('kategorie2_filter', ''), beschreibung_filter=request.args.get('beschreibung_filter', '')) }}" class="btn btn-outline-secondary">Zurück zu Buchungen</a>
+  {% else %}
+    <a href="{{ url_for('dashboard.dashboard', year=request.args.get('year'), month=request.args.getlist('month'), page=request.args.get('page', 1)) }}" class="btn btn-outline-secondary">Zurück zum Dashboard</a>
+  {% endif %}
 </div>
 
 {% if get_flashed_messages() %}
@@ -18,6 +22,16 @@
 {% endif %}
 
 <form method="post" id="edit-form">
+  {# Query-Parameter als versteckte Felder weitergeben #}
+  {% if request.args.get('year') %}<input type="hidden" name="year" value="{{ request.args.get('year') }}">{% endif %}
+  {% if request.args.get('page') %}<input type="hidden" name="page" value="{{ request.args.get('page') }}">{% endif %}
+  {% if request.args.get('konto') %}<input type="hidden" name="konto" value="{{ request.args.get('konto') }}">{% endif %}
+  {% if request.args.get('kategorie_filter') %}<input type="hidden" name="kategorie_filter" value="{{ request.args.get('kategorie_filter') }}">{% endif %}
+  {% if request.args.get('kategorie2_filter') %}<input type="hidden" name="kategorie2_filter" value="{{ request.args.get('kategorie2_filter') }}">{% endif %}
+  {% if request.args.get('beschreibung_filter') %}<input type="hidden" name="beschreibung_filter" value="{{ request.args.get('beschreibung_filter') }}">{% endif %}
+  {% if request.args.get('return_to') %}<input type="hidden" name="return_to" value="{{ request.args.get('return_to') }}">{% endif %}
+  {% for m in request.args.getlist('month') %}<input type="hidden" name="month" value="{{ m }}">{% endfor %}
+  
   <div class="mb-3">
     <label for="datum" class="form-label">Datum</label>
     <input type="date" class="form-control" id="datum" name="datum" value="{{ buchung.datum.strftime('%Y-%m-%d') if buchung.datum else '' }}" required>
@@ -75,7 +89,7 @@
   <button type="submit" class="btn btn-primary" form="edit-form">Speichern</button>
 
   <form method="post"
-        action="{{ url_for('actions.delete_buchung', buchung_id=buchung.id, year=request.args.get('year'), month=request.args.get('month'), page=request.args.get('page', 1)) }}"
+        action="{{ url_for('actions.delete_buchung', buchung_id=buchung.id) }}?{% if request.args.get('year') %}year={{ request.args.get('year') }}{% endif %}{% if request.args.getlist('month') %}{% for m in request.args.getlist('month') %}&month={{ m }}{% endfor %}{% endif %}{% if request.args.get('page') %}&page={{ request.args.get('page') }}{% endif %}{% if request.args.get('konto') %}&konto={{ request.args.get('konto') }}{% endif %}{% if request.args.get('kategorie_filter') %}&kategorie_filter={{ request.args.get('kategorie_filter') }}{% endif %}{% if request.args.get('kategorie2_filter') %}&kategorie2_filter={{ request.args.get('kategorie2_filter') }}{% endif %}{% if request.args.get('beschreibung_filter') %}&beschreibung_filter={{ request.args.get('beschreibung_filter') }}{% endif %}{% if request.args.get('return_to') %}&return_to={{ request.args.get('return_to') }}{% endif %}"
         onsubmit="return confirm('Buchung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
     <button type="submit" class="btn btn-outline-danger">Löschen</button>
   </form>
