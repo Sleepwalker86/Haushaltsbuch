@@ -34,6 +34,12 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
   - Bearbeiten-Button je Buchung → `/edit/<id>`.
   - **CSV-Export**: Button zum Herunterladen aller gefilterten Buchungen als CSV-Datei.
 
+![Dashboard](pictures/dashboard.png)
+*Dashboard mit Übersichtskarten, Diagrammen und Buchungstabelle*
+
+![Buchungen filtern](pictures/buchung_filtern.png)
+*Buchungen-Übersicht mit Filterung und Paginierung*
+
 ### Buchung erfassen (`/`)
 
 - Felder:
@@ -49,6 +55,9 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
   - Ausgaben → `soll`, Einnahmen → `haben`
   - `manually_edit = 1` zur Kennzeichnung manueller Einträge.
 
+![Buchung erfassen](pictures/buchung_erfassen.png)
+*Formular zum manuellen Erfassen von Buchungen*
+
 ### Buchung bearbeiten / löschen (`/edit/<id>`, `/delete/<id>`)
 
 - Bearbeiten:
@@ -59,6 +68,27 @@ Die Weboberfläche (Flask + Bootstrap) bietet:
 - Löschen:
   - Separater Button mit Sicherheitsabfrage (`confirm`).
   - Löscht aus `buchungen` und leitet zurück ins Dashboard inkl. Filter.
+
+### Erweiterte Analyse (`/analysis`)
+
+Die Analyse-Seite bietet umfangreiche Visualisierungen und Statistiken:
+
+- **Kategorien-Analysen**: Detaillierte Aufschlüsselung nach Kategorien
+- **Top-Kategorien nach Ausgaben**: Übersicht der größten Ausgabenposten
+- **Anteil je Kategorie (%)**: Prozentuale Verteilung der Ausgaben
+- **Vergleichsansichten**: Möglichkeit, verschiedene Zeiträume zu vergleichen
+
+![Erweiterte Analyse 1](pictures/erweiterte_analyse1.png)
+*Analyse-Übersicht mit verschiedenen Diagrammen und Statistiken*
+
+![Erweiterte Analyse 2](pictures/erweiterte_analyse2.png)
+*Detaillierte Kategorien-Analyse und Ausgabenverteilung*
+
+![Erweiterte Analyse 3](pictures/erweiterte_analyse3.png)
+*Top-Kategorien und Anteil je Kategorie*
+
+![Erweiterte Analyse](pictures/erweiterte_analyse.png)
+*Vergleichsansicht mit verschiedenen Zeiträumen*
 
 ### Einstellungen & Kontenverwaltung (`/settings`)
 
@@ -88,6 +118,9 @@ Zwei Tabs:
     - Paperless-URL/IP-Adresse
     - API-Token
     - Dokumententyp-ID
+
+![Einstellungen](pictures/settings.png)
+*Einstellungen mit verschiedenen Tabs: Konten, Kategorien, Paperless, System*
 
 ---
 

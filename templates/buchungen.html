@@ -75,7 +75,7 @@
               {% if kategorie2_filter %}{% set edit_query = edit_query + '&kategorie2_filter=' + kategorie2_filter %}{% endif %}
               {% if beschreibung_filter %}{% set edit_query = edit_query + '&beschreibung_filter=' + beschreibung_filter %}{% endif %}
               
-              <a href="{{ url_for('actions.edit_buchung', buchung_id=b.id) }}?{{ edit_query }}" 
+              <a href="{{ url_for('actions.edit_buchung', buchung_id=b.id) }}?{{ edit_query }}&return_to=buchungen" 
                  class="btn btn-sm btn-primary d-inline-flex align-items-center justify-content-center"
                  style="width: 28px; height: 28px; padding: 0;"
                  title="Bearbeiten">
@@ -86,7 +86,7 @@
               </a>
               
               <form method="post" 
-                    action="{{ url_for('actions.delete_buchung', buchung_id=b.id) }}?{{ edit_query }}"
+                    action="{{ url_for('actions.delete_buchung', buchung_id=b.id) }}?{{ edit_query }}&return_to=buchungen"
                     style="display:inline;"
                     onsubmit="return confirm('Buchung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
                 <button type="submit"

@@ -82,22 +82,27 @@ def edit_buchung(buchung_id):
                 cur.close()
 
             flash("Buchung aktualisiert.", "success")
-            # Prüfen, ob wir von buchungen-Seite kommen
-            referer = request.headers.get("Referer", "")
-            if "buchungen" in referer:
+            # Prüfen, ob wir von buchungen-Seite kommen (anhand des return_to Parameters)
+            # Beim POST kommen die Parameter aus request.form (versteckte Felder), 
+            # beim GET aus request.args
+            params_source = request.form if request.method == "POST" else request.args
+            return_to = params_source.get("return_to", "")
+            
+            if return_to == "buchungen":
                 return redirect(
                     url_for(
                         "dashboard.buchungen",
-                        year=request.args.get("year"),
-                        month=request.args.getlist("month"),
-                        page=request.args.get("page", 1),
-                        konto=request.args.get("konto", ""),
-                        kategorie_filter=request.args.get("kategorie_filter", ""),
-                        kategorie2_filter=request.args.get("kategorie2_filter", ""),
+                        year=params_source.get("year"),
+                        month=params_source.getlist("month"),
+                        page=params_source.get("page", 1),
+                        konto=params_source.get("konto", ""),
+                        kategorie_filter=params_source.get("kategorie_filter", ""),
+                        kategorie2_filter=params_source.get("kategorie2_filter", ""),
+                        beschreibung_filter=params_source.get("beschreibung_filter", ""),
                     )
                 )
             else:
-                return redirect(url_for("dashboard.dashboard", year=request.args.get("year"), month=request.args.getlist("month"), page=request.args.get("page", 1)))
+                return redirect(url_for("dashboard.dashboard", year=params_source.get("year"), month=params_source.getlist("month"), page=params_source.get("page", 1)))
         except Exception as exc:
             flash(f"Fehler: {exc}", "error")
 
@@ -143,9 +148,10 @@ def delete_buchung(buchung_id):
     except Exception as exc:
         flash(f"Buchung konnte nicht gelöscht werden: {exc}", "error")
 
-    # Prüfen, ob wir von buchungen-Seite kommen
-    referer = request.headers.get("Referer", "")
-    if "buchungen" in referer:
+    # Prüfen, ob wir von buchungen-Seite kommen (anhand des return_to Parameters)
+    return_to = request.args.get("return_to", "")
+    
+    if return_to == "buchungen":
         return redirect(
             url_for(
                 "dashboard.buchungen",
@@ -155,6 +161,7 @@ def delete_buchung(buchung_id):
                 konto=request.args.get("konto", ""),
                 kategorie_filter=request.args.get("kategorie_filter", ""),
                 kategorie2_filter=request.args.get("kategorie2_filter", ""),
+                beschreibung_filter=request.args.get("beschreibung_filter", ""),
             )
         )
     else:
