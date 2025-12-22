@@ -291,8 +291,7 @@ volumes:
 networks:
   finanzapp_network:
     driver: bridge
-
-```yaml
+```
 
 ### Weitere Informationen
 
