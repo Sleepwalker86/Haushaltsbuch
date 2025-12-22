@@ -9,18 +9,130 @@
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
   <style>
+    /* Standard Theme (Default) */
     :root {
       --accent: #4f46e5;        /* moderne Indigo-Farbe */
       --accent-soft: #22c55e;   /* frisches Grün als zweite Akzentfarbe */
       --text-main: #0f172a;     /* Slate 900 */
       --text-muted: #64748b;    /* Slate 500 */
       --border-light: #e5e7eb;
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
     }
+
+    /* Midnight Theme */
+    [data-theme="midnight"] {
+      --accent: #EFB509;        /* Golden */
+      --accent-soft: #CD7213;   /* Bronze */
+      --text-main: #ffffff;     /* Weiß für Kontrast */
+      --text-muted: #ffffff;    /* Helles Grau */
+      --border-light: #2d3748;
+      --bg-primary: #16253D;    /* Midnight Blue */
+      --bg-card: #002C54;       /* Dusk */
+    }
+
+    /* Clean Theme */
+    [data-theme="clean"] {
+      --accent: #2563eb;        /* Blau 600 */
+      --accent-soft: #0ea5e9;   /* Sky 500 */
+      --text-main: #0f172a;
+      --text-muted: #6b7280;
+      --border-light: #e5e7eb;
+      --bg-primary: #f9fafb;
+      --bg-card: #ffffff;
+    }
+
+
+    /* Dark Theme */
+    [data-theme="dark"] {
+      --accent: #6366f1;        /* Indigo 500 */
+      --accent-soft: #22d3ee;   /* Cyan 400 */
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border-light: #1f2933;
+      --bg-primary: #020617;
+      --bg-card: #020617;
+    }
+
+    /* Green Theme */
+    [data-theme="green"] {
+      --accent: #16a34a;        /* Green 600 */
+      --accent-soft: #84cc16;   /* Lime 500 */
+      --text-main: #052e16;
+      --text-muted: #4b5563;
+      --border-light: #d1fae5;
+      --bg-primary: #f0fdf4;
+      --bg-card: #ffffff;
+    }
+
   
     body {
-      background-color: #f8fafc;
+      background-color: var(--bg-primary);
       padding: 20px 0;
       color: var(--text-main);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Überschriften und Text-Elemente */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-main);
+      transition: color 0.3s ease;
+    }
+
+    p {
+      color: var(--text-main);
+      transition: color 0.3s ease;
+    }
+
+    span {
+      color: var(--text-main);
+      transition: color 0.3s ease;
+    }
+    svg {
+      color: var(--text-main);
+      transition: color 0.3s ease;
+    }
+
+    /* Für Dark Themes: Überschriften mit Akzentfarbe für besseren Kontrast */
+    [data-theme="dark"] h1,
+    [data-theme="dark"] h2,
+    [data-theme="dark"] h3,
+    [data-theme="dark"] h4,
+    [data-theme="dark"] h5,
+    [data-theme="dark"] h6 {
+      color: var(--accent);
+    }
+
+    [data-theme="dark"] p,
+    [data-theme="dark"] span,
+    [data-theme="dark"] svg,
+    [data-theme="dark"] .card-body p,
+    [data-theme="dark"] .card-body span,
+    [data-theme="dark"] .card-body svg {
+      color: var(--text-main) !important;
+    }
+
+    [data-theme="midnight"] h1,
+    [data-theme="midnight"] h2,
+    [data-theme="midnight"] h3,
+    [data-theme="midnight"] h4,
+    [data-theme="midnight"] h5,
+    [data-theme="midnight"] h6 {
+      color: var(--accent);
+    }
+
+    [data-theme="midnight"] p,
+    [data-theme="midnight"] span,
+    [data-theme="midnight"] svg,
+    [data-theme="midnight"] .card-body p,
+    [data-theme="midnight"] .card-body span,
+    [data-theme="midnight"] .card-body svg {
+      color: var(--text-main) !important;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      transition: background-color 0.3s ease;
     }
   
     .main-container {
@@ -31,6 +143,16 @@
     .navbar {
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border-light);
+      background-color: rgba(255, 255, 255, 0.8);
+      transition: background-color 0.3s ease;
+    }
+
+    [data-theme="midnight"] .navbar {
+      background-color: rgba(22, 37, 61, 0.95);
+    }
+
+    [data-theme="dark"] .navbar {
+      background-color: rgba(2, 6, 23, 0.95);
     }
   
     .navbar-brand {
@@ -95,6 +217,96 @@
       width: 100% !important;
       height: 100% !important;
     }
+
+    /* Button-Anpassungen für Themes */
+    .btn-primary {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent);
+      border-color: var(--accent);
+      opacity: 0.9;
+    }
+
+    .btn-outline-primary {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .btn-outline-primary:hover {
+      background-color: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .btn-success {
+      background-color: var(--accent-soft);
+      border-color: var(--accent-soft);
+    }
+
+    .btn-outline-success {
+      color: var(--accent-soft);
+      border-color: var(--accent-soft);
+    }
+
+    .btn-outline-success:hover {
+      background-color: var(--accent-soft);
+      border-color: var(--accent-soft);
+      color: white;
+    }
+
+    /* Link-Farben */
+    a {
+      color: var(--accent);
+    }
+
+    a:hover {
+      color: var(--accent);
+      opacity: 0.8;
+    }
+
+    /* Text-Farben für Midnight Theme */
+    [data-theme="midnight"] .text-muted {
+      color: var(--text-muted) !important;
+    }
+
+    /* Form-Labels und andere Text-Elemente */
+    label, .form-label {
+      color: var(--text-main);
+      transition: color 0.3s ease;
+    }
+
+    /* Tabellen-Text */
+    table, .table {
+      color: var(--text-main);
+    }
+
+    .table th {
+      color: var(--text-main);
+    }
+
+    .table td {
+      color: var(--text-main);
+    }
+
+    /* Bootstrap-Komponenten anpassen */
+    .card-title, .card-header h2, .card-header h5, .card-header h6 {
+      color: var(--text-main);
+    }
+
+    /* Alert-Text für Dark Themes */
+    [data-theme="dark"] .alert,
+    [data-theme="midnight"] .alert {
+      color: var(--text-main);
+    }
+
+    /* Badge-Text für Dark Themes */
+    [data-theme="dark"] .badge,
+    [data-theme="midnight"] .badge {
+      color: var(--text-main);
+    }
   </style>
   
 </head>
@@ -153,5 +365,13 @@
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Theme-Management
+    (function() {
+      // Gespeichertes Theme laden oder Standard verwenden
+      const savedTheme = localStorage.getItem('theme') || 'default';
+      document.documentElement.setAttribute('data-theme', savedTheme === 'default' ? '' : savedTheme);
+    })();
+  </script>
 </body>
 </html>

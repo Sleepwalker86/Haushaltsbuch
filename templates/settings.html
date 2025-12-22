@@ -44,6 +44,13 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'design' %}active{% endif %}" id="design-tab"
+            data-bs-toggle="tab" data-bs-target="#design-pane" type="button" role="tab"
+            aria-controls="design-pane" aria-selected="{% if active_tab == 'design' %}true{% else %}false{% endif %}">
+      Design
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
     <button class="nav-link {% if active_tab == 'system' %}active{% endif %}" id="system-tab"
             data-bs-toggle="tab" data-bs-target="#system-pane" type="button" role="tab"
             aria-controls="system-pane" aria-selected="{% if active_tab == 'system' %}true{% else %}false{% endif %}">
@@ -474,6 +481,131 @@
     </div>
   </div>
 
+  <!-- Design Tab -->
+  <div class="tab-pane fade {% if active_tab == 'design' %}show active{% endif %}" id="design-pane" role="tabpanel" aria-labelledby="design-tab">
+    <div class="row g-4">
+      <div class="col-12 col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">Design-Theme auswählen</h2>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-4">
+              Wählen Sie ein Design-Theme für die Anwendung. Die Auswahl wird automatisch gespeichert und bleibt auch nach dem Neuladen der Seite erhalten.
+            </p>
+            
+            <div class="row g-3">
+              <!-- Standard Theme -->
+              <div class="col-12 col-md-6">
+                <div class="card theme-preview-card" data-theme="default" style="cursor: pointer; border: 2px solid transparent;">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="mb-0">Standard</h5>
+                      <input type="radio" name="theme" value="default" id="theme-default" class="form-check-input" checked>
+                    </div>
+                    <div class="theme-preview" style="height: 80px; border-radius: 8px; background: linear-gradient(135deg, #4f46e5 0%, #22c55e 100%); position: relative;">
+                      <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(255,255,255,0.9); padding: 8px; border-radius: 4px; font-size: 0.75rem; color: #0f172a;">
+                        Moderne Indigo & Grün
+                      </div>
+                    </div>
+                    <div class="mt-2 small text-muted">
+                      <div>Akzent: Indigo (#4f46e5)</div>
+                      <div>Sekundär: Grün (#22c55e)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Midnight Theme -->
+              <div class="col-12 col-md-6">
+                <div class="card theme-preview-card" data-theme="midnight" style="cursor: pointer; border: 2px solid transparent;">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="mb-0">Midnight</h5>
+                      <input type="radio" name="theme" value="midnight" id="theme-midnight" class="form-check-input">
+                    </div>
+                    <div class="theme-preview" style="height: 80px; border-radius: 8px; background: linear-gradient(135deg, #16253D 0%, #002C54 50%, #EFB509 100%); position: relative;">
+                      <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(0,0,0,0.7); padding: 8px; border-radius: 4px; font-size: 0.75rem; color: #EFB509;">
+                        Dunkles Theme mit Gold-Akzenten
+                      </div>
+                    </div>
+                    <div class="mt-2 small text-muted">
+                      <div>Akzent: Golden (#EFB509)</div>
+                      <div>Sekundär: Bronze (#CD7213)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Clean Theme -->
+              <div class="col-12 col-md-6">
+                <div class="card theme-preview-card" data-theme="clean" style="cursor: pointer; border: 2px solid transparent;">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="mb-0">Clean</h5>
+                      <input type="radio" name="theme" value="clean" id="theme-clean" class="form-check-input">
+                    </div>
+                    <div class="theme-preview" style="height: 80px; border-radius: 8px; background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%); position: relative;">
+                      <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(255,255,255,0.95); padding: 8px; border-radius: 4px; font-size: 0.75rem; color: #0f172a;">
+                        Klares Blau-Design
+                      </div>
+                    </div>
+                    <div class="mt-2 small text-muted">
+                      <div>Akzent: Blau (#2563eb)</div>
+                      <div>Sekundär: Sky (#0ea5e9)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dark Theme -->
+              <div class="col-12 col-md-6">
+                <div class="card theme-preview-card" data-theme="dark" style="cursor: pointer; border: 2px solid transparent;">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="mb-0">Dark</h5>
+                      <input type="radio" name="theme" value="dark" id="theme-dark" class="form-check-input">
+                    </div>
+                    <div class="theme-preview" style="height: 80px; border-radius: 8px; background: linear-gradient(135deg, #020617 0%, #6366f1 50%, #22d3ee 100%); position: relative;">
+                      <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 4px; font-size: 0.75rem; color: #22d3ee;">
+                        Dunkles Theme mit Indigo & Cyan
+                      </div>
+                    </div>
+                    <div class="mt-2 small text-muted">
+                      <div>Akzent: Indigo (#6366f1)</div>
+                      <div>Sekundär: Cyan (#22d3ee)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Green Theme -->
+              <div class="col-12 col-md-6">
+                <div class="card theme-preview-card" data-theme="green" style="cursor: pointer; border: 2px solid transparent;">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="mb-0">Green</h5>
+                      <input type="radio" name="theme" value="green" id="theme-green" class="form-check-input">
+                    </div>
+                    <div class="theme-preview" style="height: 80px; border-radius: 8px; background: linear-gradient(135deg, #16a34a 0%, #84cc16 100%); position: relative;">
+                      <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(255,255,255,0.95); padding: 8px; border-radius: 4px; font-size: 0.75rem; color: #052e16;">
+                        Natürliches Grün-Design
+                      </div>
+                    </div>
+                    <div class="mt-2 small text-muted">
+                      <div>Akzent: Grün (#16a34a)</div>
+                      <div>Sekundär: Lime (#84cc16)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- System Tab -->
   <div class="tab-pane fade {% if active_tab == 'system' %}show active{% endif %}" id="system-pane" role="tabpanel" aria-labelledby="system-tab">
     <div class="row g-4">
@@ -544,6 +676,63 @@
     const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
     popoverTriggerList.map(function (popoverTriggerEl) {
       return new bootstrap.Popover(popoverTriggerEl);
+    });
+
+    // Theme-Management
+    const currentTheme = localStorage.getItem('theme') || 'default';
+    
+    // Aktuelles Theme im Radio-Button setzen
+    const themeRadio = document.getElementById('theme-' + currentTheme);
+    if (themeRadio) {
+      themeRadio.checked = true;
+    }
+
+    // Theme-Vorschau-Karten markieren
+    document.querySelectorAll('.theme-preview-card').forEach(card => {
+      const theme = card.getAttribute('data-theme');
+      if (theme === currentTheme) {
+        card.style.borderColor = 'var(--accent)';
+      }
+    });
+
+    // Theme-Wechsel Handler
+    document.querySelectorAll('input[name="theme"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const selectedTheme = this.value;
+        localStorage.setItem('theme', selectedTheme);
+        
+        // Theme auf HTML-Element anwenden
+        if (selectedTheme === 'default') {
+          document.documentElement.removeAttribute('data-theme');
+        } else {
+          document.documentElement.setAttribute('data-theme', selectedTheme);
+        }
+
+        // Vorschau-Karten aktualisieren
+        document.querySelectorAll('.theme-preview-card').forEach(card => {
+          const theme = card.getAttribute('data-theme');
+          if (theme === selectedTheme) {
+            card.style.borderColor = 'var(--accent)';
+          } else {
+            card.style.borderColor = 'transparent';
+          }
+        });
+      });
+    });
+
+    // Klick auf Vorschau-Karte aktiviert auch das Radio-Button
+    document.querySelectorAll('.theme-preview-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        // Nicht auslösen wenn direkt auf Radio-Button geklickt wurde
+        if (e.target.type !== 'radio') {
+          const theme = this.getAttribute('data-theme');
+          const radio = document.getElementById('theme-' + theme);
+          if (radio) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change'));
+          }
+        }
+      });
     });
   });
 </script>
