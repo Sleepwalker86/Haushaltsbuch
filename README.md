@@ -225,6 +225,75 @@ Die einfachste Methode, die Anwendung zu installieren, ist die Verwendung von Do
 - **Benutzerrechte:** Der Datenbankbenutzer muss die entsprechenden Rechte haben (CREATE, INSERT, UPDATE, DELETE, SELECT)
 - **Nach .env Änderungen:** Container neu starten mit `docker compose restart app`
 
+### Option 3: Synology Beispiel-Konfiguration
+
+Diese Konfiguration wurde erfolgreich auf einer Synology mit dem Container Manager getestet.
+
+**Wichtige Hinweise:**
+- Der Healthcheck für die Datenbank wurde optimiert, um sicherzustellen, dass der App-Container erst startet, wenn die Datenbank vollständig bereit ist
+- Bei der ersten Einrichtung kann es einige Sekunden dauern, bis MySQL vollständig initialisiert ist
+- Falls der App-Container nicht automatisch startet, warten Sie ca. 30-60 Sekunden und starten Sie ihn manuell im Container Manager
+
+```yaml
+name: finanzapp_internal
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: finanzapp_db
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "XFgH52L"
+      MYSQL_DATABASE: "Haushaltsbuch"
+      MYSQL_USER: "user"
+      MYSQL_PASSWORD: "HtW4K9n"
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=XFgH52L"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - finanzapp_network
+
+  app:
+    image: sleepwalker86/finanzapp:latest
+    container_name: finanzapp
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLASK_DEBUG: "true"
+      DB_HOST: finanzapp_db
+      DB_USER: "user"
+      DB_PASSWORD: "HtW4K9n"
+      DB_NAME: "Haushaltsbuch"
+      SECRET_KEY: "183883"
+      PAPERLESS_ENABLED: "false"
+    ports:
+      - "5050:5001"
+    volumes:
+      - ./import:/app/import
+      - ./image:/app/image
+    networks:
+      - finanzapp_network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  finanzapp_network:
+    driver: bridge
+
+```yaml
+
 ### Weitere Informationen
 
 Für detaillierte Docker-Dokumentation siehe [DOCKER.md](https://github.com/Sleepwalker86/Haushaltsbuch/blob/main/DOCKER.md) im Repository.
