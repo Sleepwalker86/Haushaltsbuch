@@ -3,60 +3,12 @@ import mysql.connector
 from db import get_connection, load_db_config
 
 
-DDL_STATEMENTS = [
-    """
-    CREATE TABLE IF NOT EXISTS buchungen (
-      id INT(11) NOT NULL AUTO_INCREMENT,
-      datum DATE NOT NULL,
-      art VARCHAR(100) DEFAULT NULL,
-      beschreibung TEXT DEFAULT NULL,
-      soll DECIMAL(10,2) DEFAULT NULL,
-      haben DECIMAL(10,2) DEFAULT NULL,
-      erzeugt_am TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-      kategorie VARCHAR(255) DEFAULT NULL,
-      kategorie2 VARCHAR(255) DEFAULT NULL,
-      konto VARCHAR(50) DEFAULT NULL,
-      betrag DECIMAL(10,2) GENERATED ALWAYS AS (IFNULL(haben,0) - IFNULL(soll,0)) STORED,
-      gegen_iban VARCHAR(34) DEFAULT NULL,
-      manually_edit INT(1) DEFAULT NULL,
-      PRIMARY KEY (id),
-      UNIQUE KEY unique_buchung (datum, art, beschreibung(255), soll, haben)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS keyword_category (
-      id INT(11) NOT NULL AUTO_INCREMENT,
-      schluesselwort VARCHAR(255) NOT NULL,
-      kategorie VARCHAR(255) NOT NULL,
-      PRIMARY KEY (id),
-      UNIQUE KEY schluesselwort (schluesselwort)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS category (
-      id INT(11) NOT NULL AUTO_INCREMENT,
-      name VARCHAR(255) NOT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      UNIQUE KEY uniq_category_name (name)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS konten (
-      id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-      name VARCHAR(100) NOT NULL,
-      beschreibung VARCHAR(255) DEFAULT NULL,
-      iban VARCHAR(34) DEFAULT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      UNIQUE KEY uniq_konten_name (name),
-      UNIQUE KEY uniq_konten_iban (iban)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    """,
-]
-
-
 def main():
+    """
+    Initialisiert die Datenbank:
+    1. Erstellt die Datenbank, falls sie nicht existiert
+    2. Führt alle ausstehenden Migrationen aus
+    """
     # Zuerst sicherstellen, dass die Datenbank existiert
     cfg = load_db_config()
     db_name = cfg["database"]
@@ -78,17 +30,18 @@ def main():
     finally:
         server_conn.close()
 
-    # Jetzt mit der eigentlichen DB verbinden und Tabellen anlegen
-    conn = get_connection()
+    # Führe Migrationen aus (dies erstellt auch die initialen Tabellen)
+    print("🔄 Führe Datenbank-Migrationen aus...")
     try:
-        cur = conn.cursor()
-        for stmt in DDL_STATEMENTS:
-            cur.execute(stmt)
-        conn.commit()
-        print("✅ Datenbanktabellen wurden angelegt/geprüft.")
-    finally:
-        cur.close()
-        conn.close()
+        from migrate import main as run_migrations
+        run_migrations()
+        print("✅ Datenbankinitialisierung abgeschlossen.")
+    except ImportError:
+        print("⚠️  migrate.py nicht gefunden, überspringe Migrationen.")
+        print("   (Dies ist normal bei der ersten Installation)")
+    except Exception as e:
+        print(f"❌ Fehler bei Migrationen: {e}")
+        raise
 
 
 if __name__ == "__main__":

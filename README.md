@@ -139,6 +139,40 @@ In den Einstellungen verwalten Sie alle wichtigen Konfigurationen:
 
 ---
 
+## Datenbank-Migrationen
+
+Die Anwendung verwendet ein automatisches Migrationssystem, das sicherstellt, dass die Datenbankstruktur immer auf dem neuesten Stand ist.
+
+### Wie funktioniert es?
+
+- **Beim ersten Start**: Die initiale Datenbankstruktur wird automatisch erstellt
+- **Bei Updates**: Neue Migrationen werden automatisch erkannt und angewendet
+- **Externe Datenbanken**: Funktioniert sowohl mit interner als auch externer Datenbank
+
+### Neue Migration erstellen
+
+Wenn Sie neue Funktionen hinzufügen, die Änderungen an der Datenbankstruktur erfordern:
+
+1. Erstellen Sie eine neue SQL-Datei im Ordner `migrations/`
+2. Benennung: `NNN_beschreibung.sql` (z.B. `002_add_user_table.sql`)
+3. Die Migration wird beim nächsten Start automatisch ausgeführt
+
+**Beispiel:**
+```sql
+-- migrations/002_add_notes_column.sql
+ALTER TABLE buchungen 
+ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT NULL AFTER beschreibung;
+```
+
+**Wichtig:**
+- Verwenden Sie immer `IF NOT EXISTS` oder `IF EXISTS` um Fehler bei wiederholter Ausführung zu vermeiden
+- Testen Sie Migrationen immer zuerst auf einer Test-Datenbank
+- Migrationen, die bereits in Produktion angewendet wurden, sollten **niemals** gelöscht oder umbenannt werden
+
+Weitere Details finden Sie in `migrations/README.md`.
+
+---
+
 ## Installation mit Docker
 
 Die einfachste Methode, die Anwendung zu installieren, ist die Verwendung von Docker und Docker Compose.
