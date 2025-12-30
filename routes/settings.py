@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 
 from db import get_connection
 from utils.helpers import load_config, save_config
+from utils.csrf import csrf_protect
 from services.data_service import fetch_konten_details, fetch_category_master, fetch_keyword_mappings
 from utils.version import CURRENT_VERSION, is_update_available
 
@@ -14,6 +15,7 @@ bp = Blueprint('settings', __name__)
 
 
 @bp.route("/settings", methods=["GET", "POST"])
+@csrf_protect
 def settings():
     if request.method == "POST":
         form_type = request.form.get("form_type", "konto")
@@ -417,6 +419,7 @@ def export_all_buchungen():
 
 
 @bp.route("/settings/import", methods=["POST"])
+@csrf_protect
 def import_buchungen():
     """Importiert Buchungen aus einer CSV-Datei."""
     if "csv_file" not in request.files:

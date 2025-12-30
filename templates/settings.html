@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import csrf_token %}
 {% block content %}
 <h1 class="mb-4">Einstellungen</h1>
 
@@ -67,6 +68,7 @@
           </div>
           <div class="card-body">
             <form method="post">
+              {{ csrf_token() }}
               {% if edit_konto %}
                 <input type="hidden" name="konto_id" value="{{ edit_konto.id }}">
               {% endif %}
@@ -138,6 +140,7 @@
                 
                         <form method="post" style="display:inline;"
                               onsubmit="return confirm('Konto wirklich löschen? Es könnte in Buchungen verwendet werden.');">
+                          {{ csrf_token() }}
                           <input type="hidden" name="form_type" value="konto_delete">
                           <input type="hidden" name="konto_id" value="{{ k.id }}">
                           <button type="submit"
@@ -181,6 +184,7 @@
           </div>
           <div class="card-body">
             <form method="post" class="mb-3">
+              {{ csrf_token() }}
               <input type="hidden" name="form_type" value="category_master">
               <div class="mb-2">
                 <label for="new_category_name" class="form-label mb-1">Neue Kategorie</label>
@@ -203,6 +207,7 @@
                     <span class="badge bg-light text-dark border me-1 mb-1 d-inline-flex align-items-center gap-1">
                       {{ c.name }}
                       <form method="post" style="display:inline;" onsubmit="return confirm('Kategorie wirklich löschen? Alle zugehörigen Zuordnungen werden ebenfalls gelöscht.');">
+                        {{ csrf_token() }}
                         <input type="hidden" name="form_type" value="category_delete">
                         <input type="hidden" name="category_id" value="{{ c.id }}">
                         <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent text-danger" style="line-height: 1; font-size: 0.75rem;" title="Kategorie löschen">
@@ -241,6 +246,7 @@
           </div>
           <div class="card-body">
             <form method="post">
+              {{ csrf_token() }}
               <input type="hidden" name="form_type" value="keyword">
               {% if edit_mapping %}
                 <input type="hidden" name="mapping_id" value="{{ edit_mapping.id }}">
@@ -274,6 +280,7 @@
               {% endif %}
             </form>
             <form method="post" action="{{ url_for('actions.reload_categories') }}" class="mb-2">
+              {{ csrf_token() }}
               <button type="submit" class="btn btn-outline-secondary w-80 mt-2">
                 Kategorien neu laden
               </button>
@@ -318,6 +325,7 @@
                         </a>
                         <form method="post" style="display:inline;"
                               onsubmit="return confirm('Zuordnung wirklich löschen?');">
+                          {{ csrf_token() }}
                           <input type="hidden" name="form_type" value="keyword_delete">
                           <input type="hidden" name="mapping_id" value="{{ m.id }}">
                           <button type="submit"
@@ -359,6 +367,7 @@
           </div>
           <div class="card-body">
             <form method="post">
+              {{ csrf_token() }}
               <input type="hidden" name="form_type" value="paperless">
               <div class="mb-3">
                 <div class="form-check form-switch mb-3">
@@ -452,6 +461,7 @@
               <strong>Hinweis:</strong> Duplikate werden automatisch erkannt und nicht importiert. Eine Buchung gilt als Duplikat, wenn Datum, Beschreibung, Soll, Haben, Konto und Gegen-IBAN identisch sind.
             </div>
             <form method="post" action="{{ url_for('settings.import_buchungen') }}" enctype="multipart/form-data">
+              {{ csrf_token() }}
               <div class="mb-3">
                 <label for="csv_file" class="form-label">CSV-Datei auswählen</label>
                 <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>

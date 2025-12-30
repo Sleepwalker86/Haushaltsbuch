@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import filter_section %}
+{% from "macros.html" import filter_section, csrf_token %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="mb-0">Alle Buchungen</h1>
@@ -89,6 +89,7 @@
                     action="{{ url_for('actions.delete_buchung', buchung_id=b.id) }}?{{ edit_query }}&return_to=buchungen"
                     style="display:inline;"
                     onsubmit="return confirm('Buchung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
+                {{ csrf_token() }}
                 <button type="submit"
                         class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
                         style="width: 28px; height: 28px; padding: 0;"

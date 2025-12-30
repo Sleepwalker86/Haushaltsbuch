@@ -7,6 +7,8 @@ import re
 import subprocess
 import sys
 
+from utils.csrf import csrf_protect
+
 bp = Blueprint('upload', __name__)
 
 
@@ -17,6 +19,7 @@ def upload():
 
 
 @bp.route("/paperless", methods=["GET", "POST"])
+@csrf_protect
 def paperless():
     if request.method == "POST":
         file = request.files.get("image_file")
@@ -56,6 +59,7 @@ def paperless():
 
 
 @bp.route("/upload_csv", methods=["POST"])
+@csrf_protect
 def upload_csv():
     file = request.files.get("csv_file")
     if not file or file.filename == "":

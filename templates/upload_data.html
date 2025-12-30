@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import csrf_token %}
 {% block content %}
 <h1 class="mb-4">CSV Upload & Import</h1>
 
@@ -25,6 +26,7 @@
           Hier können die CSV Exporte verschiedener Banken hochgeladen werden.
         </p>
         <form method="post" action="{{ url_for('upload.upload_csv') }}" enctype="multipart/form-data">
+          {{ csrf_token() }}
           <div class="input-group">
             <input type="file" class="form-control" name="csv_file" accept=".csv" required>
             <button type="submit" class="btn btn-outline-success">
@@ -36,6 +38,7 @@
           Hier kannst du ihn bei Bedarf den Import manuell anstoßen.
         </p>
         <form method="post" action="{{ url_for('actions.import_data') }}">
+          {{ csrf_token() }}
           <button type="submit" class="btn btn-outline-secondary w-100">
             CSV Daten einlesen
           </button>

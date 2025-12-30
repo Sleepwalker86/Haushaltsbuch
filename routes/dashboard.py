@@ -6,6 +6,7 @@ from io import StringIO
 
 from db import get_connection
 from utils.helpers import parse_amount, parse_filter_params, load_filter_data
+from utils.csrf import csrf_protect
 from services.data_service import (
     fetch_categories, fetch_konten_details, fetch_category_summary,
     fetch_time_series, fetch_buchungen, fetch_einzahlungen_by_iban,
@@ -16,6 +17,7 @@ bp = Blueprint('dashboard', __name__)
 
 
 @bp.route("/", methods=["GET", "POST"])
+@csrf_protect
 def index():
     if request.method == "POST":
         try:

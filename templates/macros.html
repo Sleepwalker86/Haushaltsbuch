@@ -1,3 +1,21 @@
+{% macro csrf_token() %}
+{# CSRF-Token für Formulare: Schützt vor Cross-Site Request Forgery Angriffe #}
+{# Verwende Template-Funktion get_csrf_token_value() um Token direkt zu holen #}
+{% set token = get_csrf_token_value() %}
+{% if token %}
+<input type="hidden" name="csrf_token" value="{{ token }}">
+{% else %}
+{# Fallback: Versuche Variablen aus context_processor #}
+{% set token = csrf_token_value|default(csrf_token|default('')) %}
+{% if token %}
+<input type="hidden" name="csrf_token" value="{{ token }}">
+{% else %}
+<!-- CSRF-Token konnte nicht generiert werden -->
+<input type="hidden" name="csrf_token" value="">
+{% endif %}
+{% endif %}
+{% endmacro %}
+
 {% macro filter_section(filter_url, year, selected_months, konto, kategorien, konten, kategorie_filter, kategorie2_filter, beschreibung_filter=None, show_yoy=false, compare_year=None, available_years=None) %}
 <div class="mb-3">
   <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">

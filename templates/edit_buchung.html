@@ -21,7 +21,9 @@
   </div>
 {% endif %}
 
+{% from "macros.html" import csrf_token %}
 <form method="post" id="edit-form">
+  {{ csrf_token() }}
   {# Query-Parameter als versteckte Felder weitergeben #}
   {% if request.args.get('year') %}<input type="hidden" name="year" value="{{ request.args.get('year') }}">{% endif %}
   {% if request.args.get('page') %}<input type="hidden" name="page" value="{{ request.args.get('page') }}">{% endif %}
@@ -88,9 +90,10 @@
 <div class="d-flex justify-content-between align-items-center mt-3">
   <button type="submit" class="btn btn-primary" form="edit-form">Speichern</button>
 
-  <form method="post"
+  <form method="post" id="delete-form"
         action="{{ url_for('actions.delete_buchung', buchung_id=buchung.id) }}?{% if request.args.get('year') %}year={{ request.args.get('year') }}{% endif %}{% if request.args.getlist('month') %}{% for m in request.args.getlist('month') %}&month={{ m }}{% endfor %}{% endif %}{% if request.args.get('page') %}&page={{ request.args.get('page') }}{% endif %}{% if request.args.get('konto') %}&konto={{ request.args.get('konto') }}{% endif %}{% if request.args.get('kategorie_filter') %}&kategorie_filter={{ request.args.get('kategorie_filter') }}{% endif %}{% if request.args.get('kategorie2_filter') %}&kategorie2_filter={{ request.args.get('kategorie2_filter') }}{% endif %}{% if request.args.get('beschreibung_filter') %}&beschreibung_filter={{ request.args.get('beschreibung_filter') }}{% endif %}{% if request.args.get('return_to') %}&return_to={{ request.args.get('return_to') }}{% endif %}"
         onsubmit="return confirm('Buchung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
+    {{ csrf_token() }}
     <button type="submit" class="btn btn-outline-danger">Löschen</button>
   </form>
 </div>

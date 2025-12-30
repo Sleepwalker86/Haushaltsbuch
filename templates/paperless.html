@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import csrf_token %}
 {% block content %}
 <h1 class="mb-4">Paperless</h1>
 
@@ -24,6 +25,7 @@
     </p>
     
     <form method="post" enctype="multipart/form-data">
+      {{ csrf_token() }}
       <div class="mb-3">
         <label for="image_file" class="form-label">Bild auswählen</label>
         <input type="file"

@@ -7,12 +7,14 @@ import os
 
 from db import get_connection
 from utils.helpers import parse_amount
+from utils.csrf import csrf_protect
 from services.data_service import fetch_categories
 
 bp = Blueprint('actions', __name__)
 
 
 @bp.route("/reload-categories", methods=["POST"])
+@csrf_protect
 def reload_categories():
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,6 +26,7 @@ def reload_categories():
 
 
 @bp.route("/import_data", methods=["POST"])
+@csrf_protect
 def import_data():
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -35,6 +38,7 @@ def import_data():
 
 
 @bp.route("/edit/<int:buchung_id>", methods=["GET", "POST"])
+@csrf_protect
 def edit_buchung(buchung_id):
     if request.method == "POST":
         try:
@@ -137,6 +141,7 @@ def edit_buchung(buchung_id):
 
 
 @bp.route("/delete/<int:buchung_id>", methods=["POST"])
+@csrf_protect
 def delete_buchung(buchung_id):
     try:
         with get_connection() as conn:

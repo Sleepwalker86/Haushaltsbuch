@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="alert alert-danger">
+  <h2>Fehler {{ error_code }}</h2>
+  <h4>{{ error_message }}</h4>
+  <p>{{ error_description }}</p>
+  <hr>
+  <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary">Zurück zum Dashboard</a>
+</div>
+{% endblock %}

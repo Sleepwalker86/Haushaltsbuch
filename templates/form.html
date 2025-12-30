@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import csrf_token %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="mb-0">Buchung erfassen</h1>
@@ -22,6 +23,7 @@
   </div>
   <div class="card-body">
     <form method="post">
+      {{ csrf_token() }}
       <div class="row g-3">
         <div class="col-12 col-md-3">
           <label for="datum" class="form-label">Datum</label>
