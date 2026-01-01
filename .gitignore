@@ -48,6 +48,7 @@ instance/
 
 # Logs
 *.log
+logs/
 
 # Database
 *.db

@@ -20,8 +20,10 @@ bp = Blueprint('dashboard', __name__)
 @bp.route("/", methods=["GET", "POST"])
 @csrf_protect
 def index():
+    from flask import current_app
     if request.method == "POST":
         try:
+            current_app.logger.info(f"Neue Buchung wird erstellt: {request.form.get('beschreibung', '')[:50]}")
             datum_raw = request.form.get("datum", "").strip()
             betrag_raw = request.form.get("betrag", "").strip()
             beschreibung = request.form.get("beschreibung", "").strip()
@@ -93,9 +95,12 @@ def index():
                     flash("Buchung gespeichert.", "success")
                 
                 cur.close()
+            
+            current_app.logger.info(f"Buchung erfolgreich erstellt: ID={buchung_id}, Betrag={betrag}, Kategorie={kategorie}")
 
             return redirect(url_for("dashboard.index"))
         except Exception as exc:
+            current_app.logger.error(f"Fehler beim Erstellen der Buchung: {exc}", exc_info=True)
             flash(f"Fehler: {exc}", "error")
 
     kategorien = fetch_categories()
@@ -178,7 +183,9 @@ def dashboard():
 
 @bp.route("/dashboard/export")
 def export_buchungen():
+    from flask import current_app
     filters = parse_filter_params()
+    current_app.logger.info(f"CSV-Export gestartet: Jahr={filters.get('year')}, Monat={filters.get('month')}")
     year = filters["year"]
     month = filters["month"]
     konto = filters["konto"]
@@ -281,6 +288,8 @@ def export_buchungen():
     output.close()
 
     filename = f"buchungen_{year}_{month}.csv"
+    current_app.logger.info(f"CSV-Export erfolgreich: {len(rows)} Buchungen exportiert als {filename}")
+    
     return Response(
         csv_data,
         mimetype="text/csv; charset=utf-8",

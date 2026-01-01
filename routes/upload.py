@@ -61,10 +61,13 @@ def paperless():
 @bp.route("/upload_csv", methods=["POST"])
 @csrf_protect
 def upload_csv():
+    from flask import current_app
     file = request.files.get("csv_file")
     if not file or file.filename == "":
         flash("Bitte eine CSV-Datei auswählen.", "error")
         return redirect(url_for("upload.upload"))
+    
+    current_app.logger.info(f"CSV-Upload gestartet: {file.filename}")
 
     filename = os.path.basename(file.filename)
     if not filename.lower().endswith(".csv"):
@@ -98,13 +101,18 @@ def upload_csv():
             
             if total_imported > 0:
                 flash(f"Daten wurden importiert und automatisch verarbeitet. {total_imported} Buchung(en) wurden importiert.", "success")
+                current_app.logger.info(f"CSV-Import erfolgreich: {total_imported} Buchungen importiert aus {filename}")
             else:
                 flash("Daten wurden importiert und automatisch verarbeitet. Keine neuen Buchungen gefunden (möglicherweise Duplikate).", "success")
+                current_app.logger.info(f"CSV-Import abgeschlossen: Keine neuen Buchungen gefunden in {filename}")
         except subprocess.CalledProcessError as exc:
+            current_app.logger.error(f"Fehler beim CSV-Import von {filename}: {exc}", exc_info=True)
             flash(f"Datei hochgeladen, aber Fehler beim Import: {exc}", "error")
         except Exception as exc:
+            current_app.logger.error(f"Fehler beim CSV-Import von {filename}: {exc}", exc_info=True)
             flash(f"Datei hochgeladen, aber Fehler beim Import: {exc}", "error")
     except Exception as exc:
+        current_app.logger.error(f"Fehler beim CSV-Upload: {exc}", exc_info=True)
         flash(f"CSV konnte nicht hochgeladen werden: {exc}", "error")
 
     return redirect(url_for("upload.upload"))

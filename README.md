@@ -316,6 +316,7 @@ services:
     volumes:
       - ./import:/app/import
       - ./image:/app/image
+      - ./logs:/app/logs
     networks:
       - finanzapp_network
 

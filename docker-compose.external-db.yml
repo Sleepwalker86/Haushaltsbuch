@@ -35,6 +35,7 @@ services:
     volumes:
       - ./import:/app/import
       - ./image:/app/image
+      - ./logs:/app/logs
     ports:
       - "${APP_PORT:-5001}:5001"
     networks:

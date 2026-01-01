@@ -33,11 +33,15 @@ def has_beleg_pfad_column(conn):
 @bp.route("/reload-categories", methods=["POST"])
 @csrf_protect
 def reload_categories():
+    from flask import current_app
     try:
+        current_app.logger.info("Kategorien werden neu geladen")
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         subprocess.run([sys.executable, "reload_category.py"], check=True, cwd=base_dir)
         flash("Kategorien wurden neu geladen.", "success")
+        current_app.logger.info("Kategorien erfolgreich neu geladen")
     except subprocess.CalledProcessError as exc:
+        current_app.logger.error(f"Fehler beim Neuladen der Kategorien: {exc}", exc_info=True)
         flash(f"Fehler beim Neuladen: {exc}", "error")
     return redirect(url_for("dashboard.dashboard"))
 
@@ -45,11 +49,15 @@ def reload_categories():
 @bp.route("/import_data", methods=["POST"])
 @csrf_protect
 def import_data():
+    from flask import current_app
     try:
+        current_app.logger.info("Manueller Datenimport gestartet")
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         subprocess.run([sys.executable, "import_data.py"], check=True, cwd=base_dir)
         flash("Daten wurden neu eingelesen.", "success")
+        current_app.logger.info("Manueller Datenimport erfolgreich abgeschlossen")
     except subprocess.CalledProcessError as exc:
+        current_app.logger.error(f"Fehler beim manuellen Datenimport: {exc}", exc_info=True)
         flash(f"Fehler beim lesen der Daten: {exc}", "error")
     return redirect(url_for("dashboard.dashboard"))
 
@@ -57,8 +65,10 @@ def import_data():
 @bp.route("/edit/<int:buchung_id>", methods=["GET", "POST"])
 @csrf_protect
 def edit_buchung(buchung_id):
+    from flask import current_app
     if request.method == "POST":
         try:
+            current_app.logger.info(f"Buchung wird bearbeitet: ID={buchung_id}")
             datum_raw = request.form.get("datum", "").strip()
             art = request.form.get("art", "").strip()
             beschreibung = request.form.get("beschreibung", "").strip()
@@ -171,6 +181,7 @@ def edit_buchung(buchung_id):
                 cur.close()
 
             flash("Buchung aktualisiert.", "success")
+            current_app.logger.info(f"Buchung erfolgreich aktualisiert: ID={buchung_id}, Betrag={betrag}, Kategorie={kategorie}")
             # Prüfen, ob wir von buchungen-Seite kommen (anhand des return_to Parameters)
             # Beim POST kommen die Parameter aus request.form (versteckte Felder), 
             # beim GET aus request.args
@@ -200,6 +211,8 @@ def edit_buchung(buchung_id):
             else:
                 return redirect(url_for("dashboard.dashboard", year=params_source.get("year"), month=params_source.getlist("month"), page=params_source.get("page", 1)))
         except Exception as exc:
+            from flask import current_app
+            current_app.logger.error(f"Fehler beim Bearbeiten der Buchung {buchung_id}: {exc}", exc_info=True)
             flash(f"Fehler: {exc}", "error")
 
     # Buchung laden (inkl. beleg_pfad, falls vorhanden)
@@ -269,7 +282,9 @@ def edit_buchung(buchung_id):
 @bp.route("/delete/<int:buchung_id>", methods=["POST"])
 @csrf_protect
 def delete_buchung(buchung_id):
+    from flask import current_app
     try:
+        current_app.logger.warning(f"Buchung wird gelöscht: ID={buchung_id}")
         # Beleg löschen (falls vorhanden) bevor Buchung gelöscht wird
         with get_connection() as conn:
             if has_beleg_pfad_column(conn):
@@ -286,7 +301,9 @@ def delete_buchung(buchung_id):
             conn.commit()
             cur.close()
         flash("Buchung wurde gelöscht.", "success")
+        current_app.logger.info(f"Buchung erfolgreich gelöscht: ID={buchung_id}")
     except Exception as exc:
+        current_app.logger.error(f"Fehler beim Löschen der Buchung {buchung_id}: {exc}", exc_info=True)
         flash(f"Buchung konnte nicht gelöscht werden: {exc}", "error")
 
     # Prüfen, ob wir von buchungen-Seite kommen (anhand des return_to Parameters)

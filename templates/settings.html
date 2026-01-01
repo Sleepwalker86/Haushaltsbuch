@@ -424,7 +424,7 @@
   <!-- Export Tab -->
   <div class="tab-pane fade {% if active_tab == 'export' %}show active{% endif %}" id="export-pane" role="tabpanel" aria-labelledby="export-tab">
     <div class="row g-4">
-      <div class="col-12">
+      <div class="col-12 col-lg-6">
         <div class="card shadow-sm">
           <div class="card-header py-2">
             <h2 class="m-0 h6 fw-bold">Alle Buchungen als CSV exportieren</h2>
@@ -448,7 +448,7 @@
         </div>
       </div>
 
-      <div class="col-12">
+      <div class="col-12 col-lg-6">
         <div class="card shadow-sm">
           <div class="card-header py-2">
             <h2 class="m-0 h6 fw-bold">Buchungen aus CSV importieren</h2>
@@ -481,6 +481,28 @@
           </div>
         </div>
       </div>
+
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header py-2">
+            <h2 class="m-0 h6 fw-bold">Log-Datei herunterladen</h2>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              Laden Sie die aktuelle Log-Datei herunter, um Fehler zu analysieren oder den Systemstatus zu prüfen.
+            </p>
+            <a href="{{ url_for('settings.download_log') }}" class="btn btn-outline-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Log-Datei herunterladen
+            </a>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 

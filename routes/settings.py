@@ -17,320 +17,345 @@ bp = Blueprint('settings', __name__)
 @bp.route("/settings", methods=["GET", "POST"])
 @csrf_protect
 def settings():
-    if request.method == "POST":
-        form_type = request.form.get("form_type", "konto")
-
-        # ---------------------------------
-        # Konto-Formular
-        # ---------------------------------
-        if form_type == "konto":
-            konto_id = request.form.get("konto_id")
-            name = request.form.get("name", "").strip()
-            beschreibung = request.form.get("beschreibung", "").strip()
-            iban = request.form.get("iban", "").strip()
-
-            if not name:
-                flash("Name des Kontos ist erforderlich.", "error")
-            else:
-                try:
-                    with get_connection() as conn:
-                        cur = conn.cursor()
-                        if konto_id:
-                            cur.execute(
-                                """
-                                UPDATE konten
-                                SET name=%s, beschreibung=%s, iban=%s
-                                WHERE id=%s
-                                """,
-                                (name, beschreibung, iban, konto_id),
-                            )
-                            flash("Konto wurde aktualisiert.", "success")
-                        else:
-                            cur.execute(
-                                """
-                                INSERT INTO konten (name, beschreibung, iban)
-                                VALUES (%s, %s, %s)
-                                """,
-                                (name, beschreibung, iban),
-                            )
-                            flash("Konto wurde angelegt.", "success")
-                        conn.commit()
-                        cur.close()
-                except Exception as exc:
-                    flash(f"Konto konnte nicht angelegt werden: {exc}", "error")
-
-            return redirect(url_for("settings.settings", tab="konten"))
-
-        # ---------------------------------
-        # Konto löschen
-        # ---------------------------------
-        elif form_type == "konto_delete":
-            konto_id = request.form.get("konto_id")
-            if not konto_id:
-                flash("Konto konnte nicht gelöscht werden: ID fehlt.", "error")
-            else:
-                try:
-                    with get_connection() as conn:
-                        cur = conn.cursor()
-                        cur.execute("DELETE FROM konten WHERE id=%s", (konto_id,))
-                        conn.commit()
-                        cur.close()
-                    flash("Konto wurde gelöscht.", "success")
-                except Exception as exc:
-                    flash(f"Konto konnte nicht gelöscht werden: {exc}", "error")
-
-            return redirect(url_for("settings.settings", tab="konten"))
-
-        # ---------------------------------
-        # Keyword-Category-Formular
-        # ---------------------------------
-        elif form_type == "keyword":
-            mapping_id = request.form.get("mapping_id")
-            keyword = request.form.get("keyword", "").strip()
-            category_name = request.form.get("category_name", "").strip()
-
-            if not keyword or not category_name:
-                flash("Kategorie und Schlüsselwort sind erforderlich.", "error")
-            else:
-                try:
-                    with get_connection() as conn:
-                        cur = conn.cursor()
-                        if mapping_id:
-                            cur.execute(
-                                """
-                                UPDATE keyword_category
-                                SET schluesselwort=%s, kategorie=%s
-                                WHERE id=%s
-                                """,
-                                (keyword, category_name, mapping_id),
-                            )
-                            flash("Zuordnung wurde aktualisiert.", "success")
-                        else:
-                            cur.execute(
-                                """
-                                INSERT INTO keyword_category (schluesselwort, kategorie)
-                                VALUES (%s, %s)
-                                """,
-                                (keyword, category_name),
-                            )
-                            flash("Zuordnung wurde gespeichert.", "success")
-                        conn.commit()
-                        cur.close()
-                except Exception as exc:
-                    flash(f"Zuordnung konnte nicht gespeichert werden: {exc}", "error")
-
-            return redirect(url_for("settings.settings", tab="keywords"))
-
-        # ---------------------------------
-        # Kategorie-Stammdaten (Tabelle category)
-        # ---------------------------------
-        elif form_type == "category_master":
-            category_name = request.form.get("category_name", "").strip()
-            if not category_name:
-                flash("Name der Kategorie ist erforderlich.", "error")
-            else:
-                try:
-                    with get_connection() as conn:
-                        cur = conn.cursor()
-                        cur.execute(
-                            """
-                            INSERT IGNORE INTO category (name)
-                            VALUES (%s)
-                            """,
-                            (category_name,),
-                        )
-                        conn.commit()
-                        cur.close()
-                    flash("Kategorie wurde gespeichert.", "success")
-                except Exception as exc:
-                    flash(f"Kategorie konnte nicht gespeichert werden: {exc}", "error")
-
-            return redirect(url_for("settings.settings", tab="keywords"))
-
-        # ---------------------------------
-        # Keyword-Category-Löschen
-        # ---------------------------------
-        elif form_type == "keyword_delete":
-            mapping_id = request.form.get("mapping_id")
-            if not mapping_id:
-                flash("Zuordnung konnte nicht gelöscht werden: ID fehlt.", "error")
-            else:
-                try:
-                    with get_connection() as conn:
-                        cur = conn.cursor()
-                        cur.execute(
-                            "DELETE FROM keyword_category WHERE id=%s",
-                            (mapping_id,),
-                        )
-                        conn.commit()
-                        cur.close()
-                    flash("Zuordnung wurde gelöscht.", "success")
-                except Exception as exc:
-                    flash(f"Zuordnung konnte nicht gelöscht werden: {exc}", "error")
-
-            return redirect(url_for("settings.settings", tab="keywords"))
-
-        # ---------------------------------
-        # Kategorie-Stammdaten-Löschen
-        # ---------------------------------
-        elif form_type == "category_delete":
-            category_id = request.form.get("category_id")
-            if not category_id:
-                flash("Kategorie konnte nicht gelöscht werden: ID fehlt.", "error")
-            else:
-                try:
-                    with get_connection() as conn:
-                        cur = conn.cursor()
-                        cur.execute(
-                            """
-                            DELETE FROM keyword_category
-                            WHERE kategorie = (SELECT name FROM category WHERE id=%s)
-                            """,
-                            (category_id,),
-                        )
-                        cur.execute(
-                            "DELETE FROM category WHERE id=%s",
-                            (category_id,),
-                        )
-                        conn.commit()
-                        cur.close()
-                    flash("Kategorie wurde gelöscht.", "success")
-                except Exception as exc:
-                    flash(f"Kategorie konnte nicht gelöscht werden: {exc}", "error")
-
-            return redirect(url_for("settings.settings", tab="keywords"))
-
-        # ---------------------------------
-        # Paperless-Einstellungen
-        # ---------------------------------
-        elif form_type == "paperless":
-            paperless_enabled = request.form.get("paperless_enabled") == "on"
-            paperless_ip = request.form.get("paperless_ip", "").strip()
-            paperless_token = request.form.get("paperless_token", "").strip()
-            document_type_id = request.form.get("document_type_id", "").strip()
-            try:
-                config = load_config()
-                if "PAPERLESS" not in config:
-                    config["PAPERLESS"] = {}
-                config["PAPERLESS"]["enabled"] = paperless_enabled
-                config["PAPERLESS"]["ip"] = paperless_ip
-                config["PAPERLESS"]["token"] = paperless_token
-                config["PAPERLESS"]["document_type_id"] = document_type_id
-                save_config(config)
-                flash("Paperless-Einstellungen wurden gespeichert.", "success")
-            except Exception as exc:
-                flash(f"Paperless-Einstellungen konnten nicht gespeichert werden: {exc}", "error")
-
-            return redirect(url_for("settings.settings", tab="paperless"))
-
-    konten = []
+    from flask import current_app
     try:
-        konten = fetch_konten_details()
-    except Exception as exc:
-        flash(f"Konten konnten nicht geladen werden (Tabelle vorhanden?): {exc}", "error")
+        if request.method == "POST":
+            form_type = request.form.get("form_type", "konto")
+            current_app.logger.info(f"Settings-Änderung: form_type={form_type}")
 
-    # Optional: Konto zum Bearbeiten vorselektieren
-    edit_id = request.args.get("edit_id")
-    edit_konto = None
-    if edit_id:
+            # ---------------------------------
+            # Konto-Formular
+            # ---------------------------------
+            if form_type == "konto":
+                konto_id = request.form.get("konto_id")
+                name = request.form.get("name", "").strip()
+                beschreibung = request.form.get("beschreibung", "").strip()
+                iban = request.form.get("iban", "").strip()
+
+                if not name:
+                    flash("Name des Kontos ist erforderlich.", "error")
+                else:
+                    try:
+                        with get_connection() as conn:
+                            cur = conn.cursor()
+                            if konto_id:
+                                cur.execute(
+                                    """
+                                    UPDATE konten
+                                    SET name=%s, beschreibung=%s, iban=%s
+                                    WHERE id=%s
+                                    """,
+                                    (name, beschreibung, iban, konto_id),
+                                )
+                                flash("Konto wurde aktualisiert.", "success")
+                                current_app.logger.info(f"Konto aktualisiert: ID={konto_id}, Name={name}")
+                            else:
+                                cur.execute(
+                                    """
+                                    INSERT INTO konten (name, beschreibung, iban)
+                                    VALUES (%s, %s, %s)
+                                    """,
+                                    (name, beschreibung, iban),
+                                )
+                                flash("Konto wurde angelegt.", "success")
+                                current_app.logger.info(f"Konto angelegt: Name={name}, IBAN={iban[:8]}...")
+                            conn.commit()
+                            cur.close()
+                    except Exception as exc:
+                        current_app.logger.error(f"Fehler beim Anlegen/Aktualisieren des Kontos: {exc}", exc_info=True)
+                        flash(f"Konto konnte nicht angelegt werden: {exc}", "error")
+
+                return redirect(url_for("settings.settings", tab="konten"))
+
+            # ---------------------------------
+            # Konto löschen
+            # ---------------------------------
+            elif form_type == "konto_delete":
+                konto_id = request.form.get("konto_id")
+                if not konto_id:
+                    flash("Konto konnte nicht gelöscht werden: ID fehlt.", "error")
+                else:
+                    try:
+                        with get_connection() as conn:
+                            cur = conn.cursor()
+                            cur.execute("DELETE FROM konten WHERE id=%s", (konto_id,))
+                            conn.commit()
+                            cur.close()
+                        flash("Konto wurde gelöscht.", "success")
+                        current_app.logger.warning(f"Konto gelöscht: ID={konto_id}")
+                    except Exception as exc:
+                        current_app.logger.error(f"Fehler beim Löschen des Kontos {konto_id}: {exc}", exc_info=True)
+                        flash(f"Konto konnte nicht gelöscht werden: {exc}", "error")
+
+                return redirect(url_for("settings.settings", tab="konten"))
+
+            # ---------------------------------
+            # Keyword-Category-Formular
+            # ---------------------------------
+            elif form_type == "keyword":
+                mapping_id = request.form.get("mapping_id")
+                keyword = request.form.get("keyword", "").strip()
+                category_name = request.form.get("category_name", "").strip()
+
+                if not keyword or not category_name:
+                    flash("Kategorie und Schlüsselwort sind erforderlich.", "error")
+                else:
+                    try:
+                        with get_connection() as conn:
+                            cur = conn.cursor()
+                            if mapping_id:
+                                cur.execute(
+                                    """
+                                    UPDATE keyword_category
+                                    SET schluesselwort=%s, kategorie=%s
+                                    WHERE id=%s
+                                    """,
+                                    (keyword, category_name, mapping_id),
+                                )
+                                flash("Zuordnung wurde aktualisiert.", "success")
+                                current_app.logger.info(f"Keyword-Zuordnung aktualisiert: {keyword} → {category_name}")
+                            else:
+                                cur.execute(
+                                    """
+                                    INSERT INTO keyword_category (schluesselwort, kategorie)
+                                    VALUES (%s, %s)
+                                    """,
+                                    (keyword, category_name),
+                                )
+                                flash("Zuordnung wurde gespeichert.", "success")
+                                current_app.logger.info(f"Keyword-Zuordnung erstellt: {keyword} → {category_name}")
+                            conn.commit()
+                            cur.close()
+                    except Exception as exc:
+                        flash(f"Zuordnung konnte nicht gespeichert werden: {exc}", "error")
+
+                return redirect(url_for("settings.settings", tab="keywords"))
+
+            # ---------------------------------
+            # Kategorie-Stammdaten (Tabelle category)
+            # ---------------------------------
+            elif form_type == "category_master":
+                category_name = request.form.get("category_name", "").strip()
+                if not category_name:
+                    flash("Name der Kategorie ist erforderlich.", "error")
+                else:
+                    try:
+                        with get_connection() as conn:
+                            cur = conn.cursor()
+                            cur.execute(
+                                """
+                                INSERT IGNORE INTO category (name)
+                                VALUES (%s)
+                                """,
+                                (category_name,),
+                            )
+                            conn.commit()
+                            cur.close()
+                        flash("Kategorie wurde gespeichert.", "success")
+                        current_app.logger.info(f"Kategorie-Stammdaten angelegt: {category_name}")
+                    except Exception as exc:
+                        current_app.logger.error(f"Fehler beim Anlegen der Kategorie {category_name}: {exc}", exc_info=True)
+                        flash(f"Kategorie konnte nicht gespeichert werden: {exc}", "error")
+
+                return redirect(url_for("settings.settings", tab="keywords"))
+
+            # ---------------------------------
+            # Keyword-Category-Löschen
+            # ---------------------------------
+            elif form_type == "keyword_delete":
+                mapping_id = request.form.get("mapping_id")
+                if not mapping_id:
+                    flash("Zuordnung konnte nicht gelöscht werden: ID fehlt.", "error")
+                else:
+                    try:
+                        with get_connection() as conn:
+                            cur = conn.cursor()
+                            cur.execute(
+                                "DELETE FROM keyword_category WHERE id=%s",
+                                (mapping_id,),
+                            )
+                            conn.commit()
+                            cur.close()
+                        flash("Zuordnung wurde gelöscht.", "success")
+                        current_app.logger.warning(f"Keyword-Zuordnung gelöscht: ID={mapping_id}")
+                    except Exception as exc:
+                        current_app.logger.error(f"Fehler beim Löschen der Keyword-Zuordnung {mapping_id}: {exc}", exc_info=True)
+                        flash(f"Zuordnung konnte nicht gelöscht werden: {exc}", "error")
+
+                return redirect(url_for("settings.settings", tab="keywords"))
+
+            # ---------------------------------
+            # Kategorie-Stammdaten-Löschen
+            # ---------------------------------
+            elif form_type == "category_delete":
+                category_id = request.form.get("category_id")
+                if not category_id:
+                    flash("Kategorie konnte nicht gelöscht werden: ID fehlt.", "error")
+                else:
+                    try:
+                        with get_connection() as conn:
+                            cur = conn.cursor()
+                            cur.execute(
+                                """
+                                DELETE FROM keyword_category
+                                WHERE kategorie = (SELECT name FROM category WHERE id=%s)
+                                """,
+                                (category_id,),
+                            )
+                            cur.execute(
+                                "DELETE FROM category WHERE id=%s",
+                                (category_id,),
+                            )
+                            conn.commit()
+                            cur.close()
+                        flash("Kategorie wurde gelöscht.", "success")
+                        current_app.logger.warning(f"Kategorie gelöscht: ID={category_id}")
+                    except Exception as exc:
+                        current_app.logger.error(f"Fehler beim Löschen der Kategorie {category_id}: {exc}", exc_info=True)
+                        flash(f"Kategorie konnte nicht gelöscht werden: {exc}", "error")
+
+                return redirect(url_for("settings.settings", tab="keywords"))
+
+            # ---------------------------------
+            # Paperless-Einstellungen
+            # ---------------------------------
+            elif form_type == "paperless":
+                paperless_enabled = request.form.get("paperless_enabled") == "on"
+                paperless_ip = request.form.get("paperless_ip", "").strip()
+                paperless_token = request.form.get("paperless_token", "").strip()
+                document_type_id = request.form.get("document_type_id", "").strip()
+                try:
+                    config = load_config()
+                    if "PAPERLESS" not in config:
+                        config["PAPERLESS"] = {}
+                    config["PAPERLESS"]["enabled"] = paperless_enabled
+                    config["PAPERLESS"]["ip"] = paperless_ip
+                    config["PAPERLESS"]["token"] = paperless_token
+                    config["PAPERLESS"]["document_type_id"] = document_type_id
+                    save_config(config)
+                    flash("Paperless-Einstellungen wurden gespeichert.", "success")
+                except Exception as exc:
+                    flash(f"Paperless-Einstellungen konnten nicht gespeichert werden: {exc}", "error")
+
+                return redirect(url_for("settings.settings", tab="paperless"))
+
+        # GET-Request: Daten für Anzeige laden
+        konten = []
         try:
-            with get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute(
-                    "SELECT id, name, beschreibung, iban FROM konten WHERE id=%s",
-                    (edit_id,),
-                )
-                row = cur.fetchone()
-                cur.close()
-            if row:
-                edit_konto = {
-                    "id": row[0],
-                    "name": row[1] or "",
-                    "beschreibung": row[2] or "",
-                    "iban": row[3] or "",
+            konten = fetch_konten_details()
+        except Exception as exc:
+            flash(f"Konten konnten nicht geladen werden (Tabelle vorhanden?): {exc}", "error")
+
+        # Optional: Konto zum Bearbeiten vorselektieren
+        edit_id = request.args.get("edit_id")
+        edit_konto = None
+        if edit_id:
+            try:
+                with get_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute(
+                        "SELECT id, name, beschreibung, iban FROM konten WHERE id=%s",
+                        (edit_id,),
+                    )
+                    row = cur.fetchone()
+                    cur.close()
+                if row:
+                    edit_konto = {
+                        "id": row[0],
+                        "name": row[1] or "",
+                        "beschreibung": row[2] or "",
+                        "iban": row[3] or "",
+                    }
+            except Exception:
+                pass
+
+        # Daten für Keyword-Category-Tab
+        categories_master = []
+        keyword_mappings = []
+        edit_mapping = None
+        try:
+            categories_master = fetch_category_master()
+            keyword_mappings = fetch_keyword_mappings()
+
+            mapping_id = request.args.get("mapping_id")
+            if mapping_id:
+                with get_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute(
+                        "SELECT id, schluesselwort, kategorie FROM keyword_category WHERE id=%s",
+                        (mapping_id,),
+                    )
+                    row = cur.fetchone()
+                    cur.close()
+                if row:
+                    edit_mapping = {
+                        "id": row[0],
+                        "schluesselwort": row[1] or "",
+                        "kategorie": row[2] or "",
+                    }
+        except Exception:
+            pass
+
+        # Paperless-Einstellungen laden
+        paperless_config = {"enabled": False, "ip": "", "token": "", "document_type_id": ""}
+        try:
+            config = load_config()
+            if "PAPERLESS" in config:
+                paperless_config = {
+                    "enabled": config["PAPERLESS"].get("enabled", False),
+                    "ip": config["PAPERLESS"].get("ip", ""),
+                    "token": config["PAPERLESS"].get("token", ""),
+                    "document_type_id": config["PAPERLESS"].get("document_type_id", ""),
                 }
         except Exception:
             pass
 
-    # Daten für Keyword-Category-Tab
-    categories_master = []
-    keyword_mappings = []
-    edit_mapping = None
-    try:
-        categories_master = fetch_category_master()
-        keyword_mappings = fetch_keyword_mappings()
+        # Versionsprüfung
+        version_info = {
+            "current": CURRENT_VERSION,
+            "latest": None,
+            "update_available": False,
+            "error": None
+        }
+        
+        # Versionsprüfung nur bei GET-Request und wenn Tab "system" ist (oder beim ersten Laden)
+        if request.method == "GET":
+            try:
+                update_available, latest_version, error = is_update_available()
+                version_info["latest"] = latest_version
+                version_info["update_available"] = update_available
+                version_info["error"] = error
+            except Exception as e:
+                version_info["error"] = f"Fehler bei Versionsprüfung: {str(e)}"
 
-        mapping_id = request.args.get("mapping_id")
-        if mapping_id:
-            with get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute(
-                    "SELECT id, schluesselwort, kategorie FROM keyword_category WHERE id=%s",
-                    (mapping_id,),
-                )
-                row = cur.fetchone()
-                cur.close()
-            if row:
-                edit_mapping = {
-                    "id": row[0],
-                    "schluesselwort": row[1] or "",
-                    "kategorie": row[2] or "",
-                }
-    except Exception:
-        pass
+        active_tab = request.args.get("tab")
+        if active_tab not in ("konten", "keywords", "paperless", "export", "system"):
+            active_tab = "konten"
 
-    # Paperless-Einstellungen laden
-    paperless_config = {"enabled": False, "ip": "", "token": "", "document_type_id": ""}
-    try:
-        config = load_config()
-        if "PAPERLESS" in config:
-            paperless_config = {
-                "enabled": config["PAPERLESS"].get("enabled", False),
-                "ip": config["PAPERLESS"].get("ip", ""),
-                "token": config["PAPERLESS"].get("token", ""),
-                "document_type_id": config["PAPERLESS"].get("document_type_id", ""),
-            }
-    except Exception:
-        pass
-
-    # Versionsprüfung
-    version_info = {
-        "current": CURRENT_VERSION,
-        "latest": None,
-        "update_available": False,
-        "error": None
-    }
-    
-    # Versionsprüfung nur bei GET-Request und wenn Tab "system" ist (oder beim ersten Laden)
-    if request.method == "GET":
-        try:
-            update_available, latest_version, error = is_update_available()
-            version_info["latest"] = latest_version
-            version_info["update_available"] = update_available
-            version_info["error"] = error
-        except Exception as e:
-            version_info["error"] = f"Fehler bei Versionsprüfung: {str(e)}"
-
-    active_tab = request.args.get("tab")
-    if active_tab not in ("konten", "keywords", "paperless", "export", "system"):
-        active_tab = "konten"
-
-    return render_template(
-        "settings.html",
-        konten=konten,
-        edit_konto=edit_konto,
-        categories_master=categories_master,
-        keyword_mappings=keyword_mappings,
-        edit_mapping=edit_mapping,
-        paperless_config=paperless_config,
-        version_info=version_info,
-        active_tab=active_tab,
-    )
+        return render_template(
+            "settings.html",
+            konten=konten,
+            edit_konto=edit_konto,
+            categories_master=categories_master,
+            keyword_mappings=keyword_mappings,
+            edit_mapping=edit_mapping,
+            paperless_config=paperless_config,
+            version_info=version_info,
+            active_tab=active_tab,
+        )
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"Fehler in settings(): {e}", exc_info=True)
+        flash(f"Fehler beim Laden der Einstellungen: {e}", "error")
+        return redirect(url_for("dashboard.index"))
 
 
 @bp.route("/settings/export-all")
 def export_all_buchungen():
     """Exportiert alle Buchungen als CSV-Datei."""
+    from flask import current_app
+    current_app.logger.info("CSV-Export aller Buchungen gestartet")
+    
     # Prüfe, ob beleg_pfad Spalte existiert
     with get_connection() as conn:
         from routes.actions import has_beleg_pfad_column
@@ -441,6 +466,8 @@ def export_all_buchungen():
     today = datetime.now().strftime("%Y%m%d")
     filename = f"alle_buchungen_{today}.csv"
 
+    current_app.logger.info(f"CSV-Export erfolgreich: {len(rows)} Buchungen exportiert")
+    
     return Response(
         csv_data,
         mimetype="text/csv; charset=utf-8",
@@ -452,6 +479,9 @@ def export_all_buchungen():
 @csrf_protect
 def import_buchungen():
     """Importiert Buchungen aus einer CSV-Datei."""
+    from flask import current_app
+    current_app.logger.info("CSV-Import aus Settings gestartet")
+    
     if "csv_file" not in request.files:
         flash("Keine Datei ausgewählt.", "error")
         return redirect(url_for("settings.settings", tab="export"))
@@ -595,10 +625,41 @@ def import_buchungen():
 
         if messages:
             flash(" ".join(messages), "success" if imported_count > 0 else "warning")
+            current_app.logger.info(f"CSV-Import abgeschlossen: {imported_count} importiert, {skipped_count} übersprungen, {error_count} Fehler")
         else:
             flash("Keine Buchungen konnten importiert werden.", "error")
+            current_app.logger.warning("CSV-Import: Keine Buchungen konnten importiert werden")
 
     except Exception as exc:
+        current_app.logger.error(f"Fehler beim CSV-Import: {exc}", exc_info=True)
         flash(f"Fehler beim Importieren: {exc}", "error")
 
     return redirect(url_for("settings.settings", tab="export"))
+
+
+@bp.route("/settings/download_log")
+def download_log():
+    """Lädt die aktuelle Log-Datei herunter."""
+    from flask import current_app, send_file
+    from utils.logging_config import get_log_file_path
+    import os
+    
+    try:
+        log_file = get_log_file_path()
+        
+        if not os.path.exists(log_file):
+            flash("Log-Datei nicht gefunden.", "error")
+            return redirect(url_for("settings.settings", tab="export"))
+        
+        current_app.logger.info("Log-Datei wird heruntergeladen")
+        
+        return send_file(
+            log_file,
+            as_attachment=True,
+            download_name=f"finanzapp_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log",
+            mimetype='text/plain'
+        )
+    except Exception as e:
+        current_app.logger.error(f"Fehler beim Download der Log-Datei: {e}", exc_info=True)
+        flash(f"Fehler beim Download der Log-Datei: {e}", "error")
+        return redirect(url_for("settings.settings", tab="export"))

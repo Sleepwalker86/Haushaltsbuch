@@ -48,6 +48,7 @@ services:
     volumes:
       - ./import:/app/import
       - ./image:/app/image
+      - ./logs:/app/logs
       # config.json wird automatisch im Container erstellt, nicht gemountet
     ports:
       - "${APP_PORT:-5001}:5001"

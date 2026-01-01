@@ -3,8 +3,12 @@ import os
 from flask import Flask, render_template, session, request, g
 
 from utils.helpers import load_config
+from utils.logging_config import setup_logging
 
 app = Flask(__name__)
+
+# Logging initialisieren (muss früh erfolgen, damit alle Logs erfasst werden)
+setup_logging(app)
 # Secret Key aus config.json lesen, Fallback für Entwicklung
 try:
     config = load_config()
@@ -37,6 +41,10 @@ def make_session_permanent():
     session.permanent = True
     # Stelle sicher, dass Session gespeichert wird
     session.modified = True
+    
+    # Logge wichtige Requests (nur POST/PUT/DELETE, um Logs nicht zu überfüllen)
+    if request.method in ('POST', 'PUT', 'DELETE'):
+        app.logger.debug(f"{request.method} {request.path} von {request.remote_addr}")
 
 
 @app.template_global()

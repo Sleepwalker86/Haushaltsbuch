@@ -26,8 +26,8 @@ RUN pip install --upgrade pip && \
 # Anwendungsdateien kopieren
 COPY . .
 
-# Verzeichnisse für Uploads erstellen
-RUN mkdir -p /app/import /app/image
+# Verzeichnisse für Uploads und Logs erstellen
+RUN mkdir -p /app/import /app/image /app/logs
 
 # Port freigeben
 EXPOSE 5001
