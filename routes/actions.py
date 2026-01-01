@@ -1,6 +1,6 @@
 """Aktions-Routen (Edit, Delete, Import, etc.)."""
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, flash, url_for
+from flask import Blueprint, render_template, request, redirect, flash, url_for, send_file, abort
 import subprocess
 import sys
 import os
@@ -8,9 +8,26 @@ import os
 from db import get_connection
 from utils.helpers import parse_amount
 from utils.csrf import csrf_protect
+from utils.beleg_upload import save_beleg, delete_beleg, get_beleg_path
 from services.data_service import fetch_categories
 
 bp = Blueprint('actions', __name__)
+
+
+def has_beleg_pfad_column(conn):
+    """Prüft, ob die beleg_pfad Spalte in der buchungen Tabelle existiert."""
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'buchungen' 
+            AND COLUMN_NAME = 'beleg_pfad'
+        """)
+        result = cur.fetchone()[0] > 0
+        return result
+    finally:
+        cur.close()
 
 
 @bp.route("/reload-categories", methods=["POST"])
@@ -65,23 +82,91 @@ def edit_buchung(buchung_id):
                 soll = 0
                 haben = betrag
 
+            # Beleg-Upload verarbeiten (falls vorhanden)
+            beleg_pfad = None
+            beleg_file = request.files.get('beleg_file')
+            
+            if beleg_file and beleg_file.filename:
+                # Prüfe, ob beleg_pfad Spalte existiert
+                with get_connection() as conn:
+                    if has_beleg_pfad_column(conn):
+                        cur = conn.cursor()
+                        cur.execute("SELECT beleg_pfad FROM buchungen WHERE id=%s", (buchung_id,))
+                        old_beleg = cur.fetchone()
+                        cur.close()
+                        
+                        if old_beleg and old_beleg[0]:
+                            # Alten Beleg löschen
+                            delete_beleg(old_beleg[0])
+                
+                # Neuen Beleg speichern
+                relative_path, full_path, error = save_beleg(beleg_file, datum, buchung_id)
+                
+                if error:
+                    flash(f"Fehler beim Beleg-Upload: {error}", "error")
+                elif relative_path:
+                    beleg_pfad = relative_path
+                    flash("Beleg erfolgreich hochgeladen.", "success")
+            
+            # Prüfe ob Beleg gelöscht werden soll
+            delete_beleg_flag = request.form.get('delete_beleg') == '1'
+            if delete_beleg_flag:
+                # Alten Beleg laden und löschen (nur wenn Spalte existiert)
+                with get_connection() as conn:
+                    if has_beleg_pfad_column(conn):
+                        cur = conn.cursor()
+                        cur.execute("SELECT beleg_pfad FROM buchungen WHERE id=%s", (buchung_id,))
+                        old_beleg = cur.fetchone()
+                        cur.close()
+                        
+                        if old_beleg and old_beleg[0]:
+                            delete_beleg(old_beleg[0])
+                            beleg_pfad = None  # Beleg wird gelöscht
+                            flash("Beleg wurde gelöscht.", "success")
+                    else:
+                        flash("Beleg-Funktion ist noch nicht verfügbar. Bitte Migration ausführen.", "warning")
+
             with get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute(
-                    """
-                    UPDATE buchungen
-                    SET datum=%s,
-                        art=%s,
-                        beschreibung=%s,
-                        soll=%s,
-                        haben=%s,
-                        kategorie=%s,
-                        kategorie2=%s,
-                        manually_edit=%s
-                    WHERE id=%s
-                    """,
-                    (datum, art, beschreibung, soll, haben, kategorie, kategorie2, manually_edit_flag, buchung_id),
-                )
+                has_beleg_column = has_beleg_pfad_column(conn)
+                
+                # Beleg-Pfad aktualisieren (auch wenn None, um zu löschen)
+                # Nur wenn Spalte existiert
+                if has_beleg_column and (beleg_pfad is not None or delete_beleg_flag):
+                    cur.execute(
+                        """
+                        UPDATE buchungen
+                        SET datum=%s,
+                            art=%s,
+                            beschreibung=%s,
+                            soll=%s,
+                            haben=%s,
+                            kategorie=%s,
+                            kategorie2=%s,
+                            manually_edit=%s,
+                            beleg_pfad=%s
+                        WHERE id=%s
+                        """,
+                        (datum, art, beschreibung, soll, haben, kategorie, kategorie2, manually_edit_flag, beleg_pfad, buchung_id),
+                    )
+                else:
+                    # Beleg-Pfad nicht ändern, wenn kein neuer Upload und kein Lösch-Request
+                    # Oder wenn Spalte noch nicht existiert
+                    cur.execute(
+                        """
+                        UPDATE buchungen
+                        SET datum=%s,
+                            art=%s,
+                            beschreibung=%s,
+                            soll=%s,
+                            haben=%s,
+                            kategorie=%s,
+                            kategorie2=%s,
+                            manually_edit=%s
+                        WHERE id=%s
+                        """,
+                        (datum, art, beschreibung, soll, haben, kategorie, kategorie2, manually_edit_flag, buchung_id),
+                    )
                 conn.commit()
                 cur.close()
 
@@ -110,13 +195,23 @@ def edit_buchung(buchung_id):
         except Exception as exc:
             flash(f"Fehler: {exc}", "error")
 
-    # Buchung laden
+    # Buchung laden (inkl. beleg_pfad, falls vorhanden)
     with get_connection() as conn:
+        has_beleg_column = has_beleg_pfad_column(conn)
         cur = conn.cursor()
-        cur.execute(
-            "SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, manually_edit FROM buchungen WHERE id=%s",
-            (buchung_id,),
-        )
+        
+        # SQL-Query dynamisch anpassen
+        if has_beleg_column:
+            cur.execute(
+                "SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, manually_edit, beleg_pfad FROM buchungen WHERE id=%s",
+                (buchung_id,),
+            )
+        else:
+            cur.execute(
+                "SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, manually_edit FROM buchungen WHERE id=%s",
+                (buchung_id,),
+            )
+        
         row = cur.fetchone()
         cur.close()
         if not row:
@@ -134,6 +229,7 @@ def edit_buchung(buchung_id):
             "kategorie2": row[7] or "",
             "konto": row[8] or "",
             "manually_edit": int(row[9] or 0),
+            "beleg_pfad": row[10] if has_beleg_column and len(row) > 10 else None,  # beleg_pfad (kann None sein wenn Migration noch nicht ausgeführt)
         }
 
     kategorien = fetch_categories()
@@ -144,7 +240,17 @@ def edit_buchung(buchung_id):
 @csrf_protect
 def delete_buchung(buchung_id):
     try:
+        # Beleg löschen (falls vorhanden) bevor Buchung gelöscht wird
         with get_connection() as conn:
+            if has_beleg_pfad_column(conn):
+                cur = conn.cursor()
+                cur.execute("SELECT beleg_pfad FROM buchungen WHERE id=%s", (buchung_id,))
+                beleg_result = cur.fetchone()
+                cur.close()
+                
+                if beleg_result and beleg_result[0]:
+                    delete_beleg(beleg_result[0])
+            
             cur = conn.cursor()
             cur.execute("DELETE FROM buchungen WHERE id=%s", (buchung_id,))
             conn.commit()
@@ -178,3 +284,62 @@ def delete_buchung(buchung_id):
                 page=request.args.get("page", 1),
             )
         )
+
+
+@bp.route("/beleg/<int:buchung_id>")
+def download_beleg(buchung_id):
+    """
+    Lädt den Beleg einer Buchung herunter.
+    
+    Args:
+        buchung_id: ID der Buchung
+    
+    Returns:
+        File-Response oder 404 wenn nicht gefunden
+    """
+    try:
+        with get_connection() as conn:
+            # Prüfe, ob beleg_pfad Spalte existiert
+            if not has_beleg_pfad_column(conn):
+                abort(404, description="Beleg-Funktion ist noch nicht verfügbar. Bitte Migration ausführen.")
+            
+            cur = conn.cursor()
+            cur.execute("SELECT beleg_pfad FROM buchungen WHERE id=%s", (buchung_id,))
+            result = cur.fetchone()
+            cur.close()
+            
+            if not result or not result[0]:
+                abort(404, description="Kein Beleg für diese Buchung gefunden")
+            
+            beleg_pfad = result[0]
+            full_path = get_beleg_path(beleg_pfad)
+            
+            if not full_path or not os.path.exists(full_path):
+                abort(404, description="Beleg-Datei nicht gefunden")
+            
+            # Dateiname für Download extrahieren
+            filename = os.path.basename(full_path)
+            
+            # MIME-Type basierend auf Dateiendung bestimmen
+            ext = os.path.splitext(filename)[1].lower()
+            mime_types = {
+                '.pdf': 'application/pdf',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.png': 'image/png',
+                '.webp': 'image/webp',
+                '.gif': 'image/gif'
+            }
+            mime_type = mime_types.get(ext, 'application/octet-stream')
+            
+            return send_file(
+                full_path,
+                as_attachment=True,
+                download_name=filename,
+                mimetype=mime_type
+            )
+            
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"Fehler beim Download des Belegs {buchung_id}: {e}")
+        abort(500, description="Fehler beim Laden des Belegs")

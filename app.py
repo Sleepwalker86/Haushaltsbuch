@@ -142,6 +142,16 @@ if os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true", "yes"):
 
 
 if __name__ == "__main__":
+    # Migrationen beim Start ausführen (falls noch nicht geschehen)
+    try:
+        from migrate import main as run_migrations
+        run_migrations()
+    except Exception as e:
+        # Migration-Fehler nicht kritisch - App kann trotzdem starten
+        # (Migration wird beim nächsten Docker-Start oder manuell ausgeführt)
+        import warnings
+        warnings.warn(f"⚠️  Migrationen konnten nicht automatisch ausgeführt werden: {e}", UserWarning)
+    
     debug = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
     app.config['DEBUG'] = debug # Debug-Modus aktivieren für bessere Fehlermeldungen
     app.run(debug=debug, host="0.0.0.0", port=5001)

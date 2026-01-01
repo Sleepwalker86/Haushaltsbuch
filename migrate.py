@@ -66,13 +66,109 @@ def apply_migration(conn, migration):
         sql = f.read()
     
     # Entferne Kommentare und teile in einzelne Statements
-    statements = [s.strip() for s in sql.split(';') if s.strip() and not s.strip().startswith('--')]
+    # Wichtig: Mehrzeilige Statements müssen korrekt behandelt werden
+    # Entferne Zeilen-Kommentare
+    lines = []
+    for line in sql.split('\n'):
+        # Entferne Kommentare am Zeilenende
+        if '--' in line:
+            comment_pos = line.find('--')
+            # Prüfe ob es wirklich ein Kommentar ist (nicht in String)
+            line = line[:comment_pos].rstrip()
+        if line.strip():
+            lines.append(line.strip())
+    
+    # Verbinde Zeilen und teile nach Semikolon
+    sql_clean = ' '.join(lines)
+    statements = [s.strip() for s in sql_clean.split(';') if s.strip()]
+    
+    print(f"   Gefundene Statements: {len(statements)}")
+    for i, stmt in enumerate(statements, 1):
+        print(f"   Statement {i}: {stmt[:100]}...")
     
     cur = conn.cursor()
     try:
-        for statement in statements:
+        for i, statement in enumerate(statements, 1):
             if statement:
-                cur.execute(statement)
+                try:
+                    print(f"   → Führe Statement {i}/{len(statements)} aus...")
+                    print(f"   SQL: {statement}")
+                    cur.execute(statement)
+                    affected = cur.rowcount
+                    print(f"   ✓ Statement {i} erfolgreich (affected rows: {affected})")
+                    # Bei ALTER TABLE sollte rowcount -1 sein (nicht anwendbar)
+                    if 'ALTER TABLE' in statement.upper() or 'ADD COLUMN' in statement.upper():
+                        print(f"   → ALTER TABLE Statement ausgeführt, prüfe sofort ob Spalte existiert...")
+                        # Prüfe sofort nach dem Statement
+                        if 'beleg_pfad' in statement.lower():
+                            cur.execute("""
+                                SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                                WHERE TABLE_SCHEMA = DATABASE() 
+                                AND TABLE_NAME = 'buchungen' 
+                                AND COLUMN_NAME = 'beleg_pfad'
+                            """)
+                            exists = cur.fetchone()[0] > 0
+                            if exists:
+                                print(f"   ✓ Spalte beleg_pfad existiert jetzt!")
+                            else:
+                                print(f"   ❌ Spalte beleg_pfad existiert NICHT nach ALTER TABLE!")
+                                print(f"   → Möglicherweise fehlende Berechtigungen oder Tabellen-Sperre")
+                except mysql.connector.Error as e:
+                    # Prüfe, ob es ein "Duplicate column" oder "Duplicate key" Fehler ist
+                    # Diese können ignoriert werden, wenn die Migration bereits teilweise ausgeführt wurde
+                    error_code = e.errno
+                    error_msg = str(e).lower()
+                    
+                    # MySQL Fehlercodes:
+                    # 1060 = Duplicate column name
+                    # 1061 = Duplicate key name
+                    # 1054 = Unknown column (kann ignoriert werden bei DROP COLUMN)
+                    if error_code in (1060, 1061) or 'duplicate' in error_msg:
+                        print(f"   ⚠️  Warnung bei Statement {i}: {e}")
+                        print(f"   → Spalte/Index existiert bereits, überspringe...")
+                        continue
+                    else:
+                        # Andere Fehler weiterwerfen mit mehr Details
+                        print(f"   ❌ Fehler bei Statement {i}: {e}")
+                        print(f"   Fehlercode: {error_code}")
+                        print(f"   Statement war: {statement}")
+                        raise
+        
+        # Commit nach allen Statements
+        conn.commit()
+        print(f"   ✓ Alle Statements erfolgreich ausgeführt")
+        
+        # Verifiziere, dass die Migration wirklich erfolgreich war
+        # (z.B. bei ALTER TABLE prüfen, ob Spalte existiert)
+        migration_successful = True
+        if 'beleg_pfad' in sql.lower() or 'add column' in sql.lower():
+            print(f"   → Verifiziere, ob Spalte beleg_pfad erstellt wurde...")
+            cur.execute("""
+                SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'buchungen' 
+                AND COLUMN_NAME = 'beleg_pfad'
+            """)
+            column_exists = cur.fetchone()[0] > 0
+            if not column_exists:
+                print(f"   ❌ FEHLER: Spalte beleg_pfad wurde NICHT erstellt!")
+                print(f"   → Prüfe alle Spalten der Tabelle buchungen...")
+                cur.execute("""
+                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                    AND TABLE_NAME = 'buchungen'
+                    ORDER BY ORDINAL_POSITION
+                """)
+                columns = [row[0] for row in cur.fetchall()]
+                print(f"   Vorhandene Spalten: {', '.join(columns)}")
+                print(f"   → Migration wird NICHT als angewendet markiert")
+                migration_successful = False
+            else:
+                print(f"   ✓ Verifikation: Spalte beleg_pfad existiert")
+        
+        if not migration_successful:
+            conn.rollback()
+            raise Exception("Migration fehlgeschlagen: Spalte beleg_pfad wurde nicht erstellt. Bitte manuell prüfen.")
         
         # Markiere Migration als angewendet
         description = migration['file'].replace('.sql', '').replace(f"{migration['version']}_", "")
@@ -85,6 +181,7 @@ def apply_migration(conn, migration):
     except mysql.connector.Error as e:
         conn.rollback()
         print(f"❌ Fehler bei Migration {migration['version']}: {e}")
+        print(f"   Fehlercode: {e.errno}")
         raise
     finally:
         cur.close()

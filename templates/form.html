@@ -22,7 +22,7 @@
     <h2 class="m-0 h6 fw-bold">Neue Buchung</h2>
   </div>
   <div class="card-body">
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
       {{ csrf_token() }}
       <div class="row g-3">
         <div class="col-12 col-md-3">
@@ -71,6 +71,15 @@
         <div class="col-12 col-md-4">
           <label for="betrag" class="form-label">Betrag</label>
           <input type="text" class="form-control" id="betrag" name="betrag" inputmode="decimal" placeholder="z.B. 25,50" required>
+        </div>
+
+        <div class="col-12">
+          <label for="beleg_file" class="form-label">Beleg (Foto oder PDF) <span class="text-muted">(optional)</span></label>
+          <input type="file" class="form-control" id="beleg_file" name="beleg_file" 
+                 accept="image/*,application/pdf">
+          <div class="form-text">
+            Erlaubte Formate: JPG, PNG, WEBP, GIF, PDF (max. 12 MB)
+          </div>
         </div>
       </div>
 

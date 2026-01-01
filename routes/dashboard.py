@@ -7,6 +7,7 @@ from io import StringIO
 from db import get_connection
 from utils.helpers import parse_amount, parse_filter_params, load_filter_data
 from utils.csrf import csrf_protect
+from utils.beleg_upload import save_beleg
 from services.data_service import (
     fetch_categories, fetch_konten_details, fetch_category_summary,
     fetch_time_series, fetch_buchungen, fetch_einzahlungen_by_iban,
@@ -62,10 +63,37 @@ def index():
                         1,
                     ),
                 )
+                buchung_id = cur.lastrowid
                 conn.commit()
+                
+                # Beleg-Upload verarbeiten (falls vorhanden)
+                beleg_file = request.files.get('beleg_file')
+                if beleg_file and beleg_file.filename:
+                    # Prüfe, ob beleg_pfad Spalte existiert
+                    from routes.actions import has_beleg_pfad_column
+                    if has_beleg_pfad_column(conn):
+                        # Neuen Beleg speichern
+                        relative_path, full_path, error = save_beleg(beleg_file, datum, buchung_id)
+                        
+                        if error:
+                            flash(f"Buchung gespeichert, aber Fehler beim Beleg-Upload: {error}", "warning")
+                        elif relative_path:
+                            # Beleg-Pfad in Datenbank speichern
+                            cur.execute(
+                                "UPDATE buchungen SET beleg_pfad = %s WHERE id = %s",
+                                (relative_path, buchung_id)
+                            )
+                            conn.commit()
+                            flash("Buchung mit Beleg gespeichert.", "success")
+                        else:
+                            flash("Buchung gespeichert.", "success")
+                    else:
+                        flash("Buchung gespeichert. (Beleg-Funktion noch nicht verfügbar)", "success")
+                else:
+                    flash("Buchung gespeichert.", "success")
+                
                 cur.close()
 
-            flash("Buchung gespeichert.", "success")
             return redirect(url_for("dashboard.index"))
         except Exception as exc:
             flash(f"Fehler: {exc}", "error")

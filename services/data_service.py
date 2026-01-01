@@ -218,34 +218,66 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
         cur.close()
     
     # Buchungen mit Pagination
+    # Prüfe, ob beleg_pfad Spalte existiert
     offset = (page - 1) * per_page
-    sql = f"""
-        SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto
-        FROM buchungen
-        {where_sql}
-        ORDER BY datum DESC, id DESC
-        LIMIT %s OFFSET %s
-    """
+    with get_connection() as conn:
+        from routes.actions import has_beleg_pfad_column
+        has_beleg = has_beleg_pfad_column(conn)
+    
+    if has_beleg:
+        sql = f"""
+            SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, beleg_pfad
+            FROM buchungen
+            {where_sql}
+            ORDER BY datum DESC, id DESC
+            LIMIT %s OFFSET %s
+        """
+    else:
+        sql = f"""
+            SELECT id, datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto
+            FROM buchungen
+            {where_sql}
+            ORDER BY datum DESC, id DESC
+            LIMIT %s OFFSET %s
+        """
     params_with_pagination = params + [per_page, offset]
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(sql, params_with_pagination)
         rows = cur.fetchall()
         cur.close()
-        buchungen = [
-            {
-                "id": r[0],
-                "datum": r[1],
-                "art": r[2] or "",
-                "beschreibung": r[3] or "",
-                "soll": float(r[4] or 0),
-                "haben": float(r[5] or 0),
-                "kategorie": r[6] or "",
-                "kategorie2": r[7] or "",
-                "konto": r[8] or "",
-            }
-            for r in rows
-        ]
+        if has_beleg:
+            buchungen = [
+                {
+                    "id": r[0],
+                    "datum": r[1],
+                    "art": r[2] or "",
+                    "beschreibung": r[3] or "",
+                    "soll": float(r[4] or 0),
+                    "haben": float(r[5] or 0),
+                    "kategorie": r[6] or "",
+                    "kategorie2": r[7] or "",
+                    "konto": r[8] or "",
+                    "beleg_pfad": r[9] if len(r) > 9 else None,
+                }
+                for r in rows
+            ]
+        else:
+            buchungen = [
+                {
+                    "id": r[0],
+                    "datum": r[1],
+                    "art": r[2] or "",
+                    "beschreibung": r[3] or "",
+                    "soll": float(r[4] or 0),
+                    "haben": float(r[5] or 0),
+                    "kategorie": r[6] or "",
+                    "kategorie2": r[7] or "",
+                    "konto": r[8] or "",
+                    "beleg_pfad": None,
+                }
+                for r in rows
+            ]
 
     
     total_pages = math.ceil(total / per_page) if total > 0 else 1
