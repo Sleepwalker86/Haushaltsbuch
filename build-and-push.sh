@@ -6,10 +6,12 @@ set -e
 
 DOCKER_USERNAME="sleepwalker86"
 IMAGE_NAME="finanzapp"
-VERSION="${1:-latest}"
+VERSION="${1:-1.0.2}"
 
 echo "🐳 Docker Image Build und Push Script"
 echo "======================================"
+echo ""
+echo "📦 Version: ${VERSION}"
 echo ""
 
 # Prüfe ob Docker installiert ist
@@ -66,42 +68,55 @@ if [ "$BUILD_TYPE" = "1" ]; then
     echo ""
     echo "🏗️  Baue Image für mehrere Architekturen (AMD64 + ARM64)..."
     echo "   Image: ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION}"
+    echo "   Image: ${DOCKER_USERNAME}/${IMAGE_NAME}:latest"
     
     docker buildx build \
         --platform linux/amd64,linux/arm64 \
         --tag ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION} \
+        --tag ${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
         --push \
         .
     
     echo ""
     echo "✅ Image erfolgreich gebaut und hochgeladen!"
     echo "   Verfügbar für: AMD64 (x86_64) und ARM64"
+    echo "   Tags: ${VERSION} und latest"
     
 elif [ "$BUILD_TYPE" = "2" ]; then
     echo ""
     echo "🏗️  Baue Image für AMD64 (x86_64)..."
-    docker build --platform linux/amd64 -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION} .
+    docker build --platform linux/amd64 \
+        -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION} \
+        -t ${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
+        .
     
     echo ""
-    echo "📤 Lade Image hoch..."
+    echo "📤 Lade Images hoch..."
     docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION}
+    docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:latest
     
     echo ""
     echo "✅ Image erfolgreich gebaut und hochgeladen!"
     echo "   Verfügbar für: AMD64 (x86_64)"
+    echo "   Tags: ${VERSION} und latest"
     
 elif [ "$BUILD_TYPE" = "3" ]; then
     echo ""
     echo "🏗️  Baue Image für ARM64..."
-    docker build --platform linux/arm64 -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION} .
+    docker build --platform linux/arm64 \
+        -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION} \
+        -t ${DOCKER_USERNAME}/${IMAGE_NAME}:latest \
+        .
     
     echo ""
-    echo "📤 Lade Image hoch..."
+    echo "📤 Lade Images hoch..."
     docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION}
+    docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:latest
     
     echo ""
     echo "✅ Image erfolgreich gebaut und hochgeladen!"
     echo "   Verfügbar für: ARM64"
+    echo "   Tags: ${VERSION} und latest"
 else
     echo "❌ Ungültige Auswahl!"
     exit 1

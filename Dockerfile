@@ -14,7 +14,14 @@ RUN apt-get update && apt-get install -y \
 
 # Python-Abhängigkeiten kopieren und installieren
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Pip upgraden und mit Retry-Mechanismus installieren
+# Erhöhte Timeouts und Retries für stabilere Builds
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir \
+        --timeout=300 \
+        --retries=5 \
+        -r requirements.txt
 
 # Anwendungsdateien kopieren
 COPY . .
