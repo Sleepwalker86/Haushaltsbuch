@@ -213,12 +213,25 @@ def export_buchungen():
         params.append(f"%{beschreibung_filter}%")
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
 
-    sql = f"""
-        SELECT datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto
-        FROM buchungen
-        {where_sql}
-        ORDER BY datum DESC, id DESC
-    """
+    # Prüfe, ob beleg_pfad Spalte existiert
+    with get_connection() as conn:
+        from routes.actions import has_beleg_pfad_column
+        has_beleg = has_beleg_pfad_column(conn)
+    
+    if has_beleg:
+        sql = f"""
+            SELECT datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, beleg_pfad
+            FROM buchungen
+            {where_sql}
+            ORDER BY datum DESC, id DESC
+        """
+    else:
+        sql = f"""
+            SELECT datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto
+            FROM buchungen
+            {where_sql}
+            ORDER BY datum DESC, id DESC
+        """
 
     with get_connection() as conn:
         cur = conn.cursor()
@@ -231,27 +244,38 @@ def export_buchungen():
     writer = csv.writer(output, delimiter=";")
 
     # Kopfzeile
-    writer.writerow(
-        ["Datum", "Art", "Beschreibung", "Soll", "Haben", "Kategorie", "Unterkategorie", "Konto"]
-    )
+    if has_beleg:
+        writer.writerow(
+            ["Datum", "Art", "Beschreibung", "Soll", "Haben", "Kategorie", "Unterkategorie", "Konto", "Beleg-Pfad"]
+        )
+    else:
+        writer.writerow(
+            ["Datum", "Art", "Beschreibung", "Soll", "Haben", "Kategorie", "Unterkategorie", "Konto"]
+        )
 
-    for datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto_val in rows:
+    for row in rows:
+        if has_beleg:
+            datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto_val, beleg_pfad = row
+        else:
+            datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto_val = row
+            beleg_pfad = None
         if isinstance(datum, (datetime, date)):
             datum_str = datum.strftime("%d.%m.%Y")
         else:
             datum_str = str(datum) if datum is not None else ""
-        writer.writerow(
-            [
-                datum_str,
-                art or "",
-                beschreibung or "",
-                f"{float(soll or 0):.2f}".replace(".", ","),
-                f"{float(haben or 0):.2f}".replace(".", ","),
-                kategorie or "",
-                kategorie2 or "",
-                konto_val or "",
-            ]
-        )
+        row_data = [
+            datum_str,
+            art or "",
+            beschreibung or "",
+            f"{float(soll or 0):.2f}".replace(".", ","),
+            f"{float(haben or 0):.2f}".replace(".", ","),
+            kategorie or "",
+            kategorie2 or "",
+            konto_val or "",
+        ]
+        if has_beleg:
+            row_data.append(beleg_pfad or "")
+        writer.writerow(row_data)
 
     csv_data = output.getvalue()
     output.close()

@@ -331,11 +331,23 @@ def settings():
 @bp.route("/settings/export-all")
 def export_all_buchungen():
     """Exportiert alle Buchungen als CSV-Datei."""
-    sql = """
-        SELECT datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, erzeugt_am
-        FROM buchungen
-        ORDER BY datum DESC, id DESC
-    """
+    # Prüfe, ob beleg_pfad Spalte existiert
+    with get_connection() as conn:
+        from routes.actions import has_beleg_pfad_column
+        has_beleg = has_beleg_pfad_column(conn)
+    
+    if has_beleg:
+        sql = """
+            SELECT datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, erzeugt_am, beleg_pfad
+            FROM buchungen
+            ORDER BY datum DESC, id DESC
+        """
+    else:
+        sql = """
+            SELECT datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, erzeugt_am
+            FROM buchungen
+            ORDER BY datum DESC, id DESC
+        """
 
     with get_connection() as conn:
         cur = conn.cursor()
@@ -348,34 +360,51 @@ def export_all_buchungen():
     writer = csv.writer(output, delimiter=";")
 
     # Kopfzeile
-    writer.writerow(
-        [
-            "Datum",
-            "Art",
-            "Beschreibung",
-            "Soll",
-            "Haben",
-            "Kategorie",
-            "Unterkategorie",
-            "Konto",
-            "Gegen-IBAN",
-            "Erstellt am",
-        ]
-    )
+    header = [
+        "Datum",
+        "Art",
+        "Beschreibung",
+        "Soll",
+        "Haben",
+        "Kategorie",
+        "Unterkategorie",
+        "Konto",
+        "Gegen-IBAN",
+        "Erstellt am",
+    ]
+    if has_beleg:
+        header.append("Beleg-Pfad")
+    writer.writerow(header)
 
     for row in rows:
-        (
-            datum,
-            art,
-            beschreibung,
-            soll,
-            haben,
-            kategorie,
-            kategorie2,
-            konto_val,
-            gegen_iban,
-            erzeugt_am,
-        ) = row
+        if has_beleg:
+            (
+                datum,
+                art,
+                beschreibung,
+                soll,
+                haben,
+                kategorie,
+                kategorie2,
+                konto_val,
+                gegen_iban,
+                erzeugt_am,
+                beleg_pfad,
+            ) = row
+        else:
+            (
+                datum,
+                art,
+                beschreibung,
+                soll,
+                haben,
+                kategorie,
+                kategorie2,
+                konto_val,
+                gegen_iban,
+                erzeugt_am,
+            ) = row
+            beleg_pfad = None
 
         # Datum formatieren
         if isinstance(datum, (datetime, date)):
@@ -389,20 +418,21 @@ def export_all_buchungen():
         else:
             erzeugt_am_str = str(erzeugt_am) if erzeugt_am is not None else ""
 
-        writer.writerow(
-            [
-                datum_str,
-                art or "",
-                beschreibung or "",
-                f"{float(soll or 0):.2f}".replace(".", ","),
-                f"{float(haben or 0):.2f}".replace(".", ","),
-                kategorie or "",
-                kategorie2 or "",
-                konto_val or "",
-                gegen_iban or "",
-                erzeugt_am_str,
-            ]
-        )
+        row_data = [
+            datum_str,
+            art or "",
+            beschreibung or "",
+            f"{float(soll or 0):.2f}".replace(".", ","),
+            f"{float(haben or 0):.2f}".replace(".", ","),
+            kategorie or "",
+            kategorie2 or "",
+            konto_val or "",
+            gegen_iban or "",
+            erzeugt_am_str,
+        ]
+        if has_beleg:
+            row_data.append(beleg_pfad or "")
+        writer.writerow(row_data)
 
     csv_data = output.getvalue()
     output.close()
@@ -440,7 +470,7 @@ def import_buchungen():
         content = file.read().decode("utf-8")
         reader = csv.DictReader(StringIO(content), delimiter=";")
 
-        # Erwartete Spalten prüfen
+        # Erwartete Spalten prüfen (beleg_pfad ist optional)
         expected_columns = [
             "Datum",
             "Art",
@@ -458,6 +488,14 @@ def import_buchungen():
                 "error",
             )
             return redirect(url_for("settings.settings", tab="export"))
+        
+        # Prüfe, ob beleg_pfad Spalte existiert
+        with get_connection() as conn:
+            from routes.actions import has_beleg_pfad_column
+            has_beleg = has_beleg_pfad_column(conn)
+        
+        # beleg_pfad ist optional in CSV
+        has_beleg_column = "Beleg-Pfad" in reader.fieldnames
 
         imported_count = 0
         skipped_count = 0
@@ -502,6 +540,7 @@ def import_buchungen():
                     kategorie2 = row.get("Unterkategorie", "").strip() or None
                     konto = row.get("Konto", "").strip() or None
                     gegen_iban = row.get("Gegen-IBAN", "").strip() or None
+                    beleg_pfad = row.get("Beleg-Pfad", "").strip() or None if has_beleg_column else None
 
                     # Duplikatsprüfung
                     cur.execute(
@@ -514,15 +553,26 @@ def import_buchungen():
                     )
 
                     if cur.fetchone()[0] == 0:
-                        # Buchung einfügen
-                        cur.execute(
-                            """
-                            INSERT INTO buchungen
-                            (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, manually_edit)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            """,
-                            (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, 1),
-                        )
+                        # Buchung einfügen (mit beleg_pfad, falls vorhanden)
+                        if has_beleg and beleg_pfad:
+                            cur.execute(
+                                """
+                                INSERT INTO buchungen
+                                (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, beleg_pfad)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """,
+                                (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, beleg_pfad),
+                            )
+                        else:
+                            # Buchung ohne beleg_pfad einfügen
+                            cur.execute(
+                                """
+                                INSERT INTO buchungen
+                                (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, manually_edit)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """,
+                                (datum, art, beschreibung, soll, haben, kategorie, kategorie2, konto, gegen_iban, 1),
+                            )
                         imported_count += 1
                     else:
                         skipped_count += 1
