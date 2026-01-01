@@ -173,7 +173,7 @@ def delete_beleg(beleg_pfad):
         beleg_pfad: Relativer Pfad (wie in Datenbank gespeichert) oder absoluter Pfad
     
     Returns:
-        bool: True wenn erfolgreich gelöscht, False sonst
+        bool: True wenn erfolgreich gelöscht oder nicht vorhanden, False bei Fehler
     """
     if not beleg_pfad:
         return True  # Kein Beleg vorhanden, nichts zu löschen
@@ -196,15 +196,20 @@ def delete_beleg(beleg_pfad):
         
         # Datei löschen
         if os.path.exists(full_path):
-            os.remove(full_path)
-            current_app.logger.info(f"Beleg gelöscht: {full_path}")
-            return True
+            try:
+                os.remove(full_path)
+                current_app.logger.info(f"Beleg gelöscht: {full_path}")
+                return True
+            except OSError as e:
+                current_app.logger.error(f"Fehler beim Löschen der Datei {full_path}: {e}")
+                return False
         else:
-            current_app.logger.warning(f"Beleg nicht gefunden: {full_path}")
+            # Datei existiert nicht - das ist ok (möglicherweise bereits gelöscht)
+            current_app.logger.info(f"Beleg-Datei existiert nicht (bereits gelöscht?): {full_path}")
             return True  # Datei existiert nicht, betrachten wir als Erfolg
         
     except Exception as e:
-        current_app.logger.error(f"Fehler beim Löschen des Belegs {beleg_pfad}: {e}")
+        current_app.logger.error(f"Fehler beim Löschen des Belegs {beleg_pfad}: {e}", exc_info=True)
         return False
 
 

@@ -1,5 +1,6 @@
 """Datenbank-Service-Funktionen für die Anwendung."""
 import math
+import os
 from db import get_connection
 
 
@@ -247,8 +248,19 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
         rows = cur.fetchall()
         cur.close()
         if has_beleg:
-            buchungen = [
-                {
+            from utils.beleg_upload import get_beleg_path
+            buchungen = []
+            for r in rows:
+                beleg_pfad = r[9] if len(r) > 9 else None
+                
+                # Prüfe, ob Beleg-Datei wirklich existiert
+                if beleg_pfad:
+                    full_path = get_beleg_path(beleg_pfad)
+                    if not full_path or not os.path.exists(full_path):
+                        # Datei existiert nicht - setze auf None (wird beim nächsten Laden bereinigt)
+                        beleg_pfad = None
+                
+                buchungen.append({
                     "id": r[0],
                     "datum": r[1],
                     "art": r[2] or "",
@@ -258,10 +270,8 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
                     "kategorie": r[6] or "",
                     "kategorie2": r[7] or "",
                     "konto": r[8] or "",
-                    "beleg_pfad": r[9] if len(r) > 9 else None,
-                }
-                for r in rows
-            ]
+                    "beleg_pfad": beleg_pfad,  # None wenn Datei nicht existiert
+                })
         else:
             buchungen = [
                 {

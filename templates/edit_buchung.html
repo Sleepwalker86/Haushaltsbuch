@@ -3,7 +3,18 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="mb-0">Buchung bearbeiten</h1>
   {% if request.args.get('return_to') == 'buchungen' %}
-    <a href="{{ url_for('dashboard.buchungen', year=request.args.get('year'), month=request.args.getlist('month'), page=request.args.get('page', 1), konto=request.args.get('konto', ''), kategorie_filter=request.args.get('kategorie_filter', ''), kategorie2_filter=request.args.get('kategorie2_filter', ''), beschreibung_filter=request.args.get('beschreibung_filter', '')) }}" class="btn btn-outline-secondary">Zurück zu Buchungen</a>
+    {# Baue URL mit Filter-Parametern - nur wenn sie Werte haben #}
+    {% set query_parts = [] %}
+    {% if request.args.get('year') %}{% set _ = query_parts.append('year=' + request.args.get('year')) %}{% endif %}
+    {% for m in request.args.getlist('month') %}
+      {% set _ = query_parts.append('month=' + m) %}
+    {% endfor %}
+    {% if request.args.get('page') %}{% set _ = query_parts.append('page=' + request.args.get('page')) %}{% endif %}
+    {% if request.args.get('konto') %}{% set _ = query_parts.append('konto=' + request.args.get('konto')) %}{% endif %}
+    {% if request.args.get('kategorie_filter') %}{% set _ = query_parts.append('kategorie_filter=' + request.args.get('kategorie_filter')) %}{% endif %}
+    {% if request.args.get('kategorie2_filter') %}{% set _ = query_parts.append('kategorie2_filter=' + request.args.get('kategorie2_filter')) %}{% endif %}
+    {% if request.args.get('beschreibung_filter') %}{% set _ = query_parts.append('beschreibung_filter=' + request.args.get('beschreibung_filter')) %}{% endif %}
+    <a href="{{ url_for('dashboard.buchungen') }}{% if query_parts %}?{{ query_parts|join('&') }}{% endif %}" class="btn btn-outline-secondary">Zurück zu Buchungen</a>
   {% else %}
     <a href="{{ url_for('dashboard.dashboard', year=request.args.get('year'), month=request.args.getlist('month'), page=request.args.get('page', 1)) }}" class="btn btn-outline-secondary">Zurück zum Dashboard</a>
   {% endif %}

@@ -178,18 +178,25 @@ def edit_buchung(buchung_id):
             return_to = params_source.get("return_to", "")
             
             if return_to == "buchungen":
-                return redirect(
-                    url_for(
-                        "dashboard.buchungen",
-                        year=params_source.get("year"),
-                        month=params_source.getlist("month"),
-                        page=params_source.get("page", 1),
-                        konto=params_source.get("konto", ""),
-                        kategorie_filter=params_source.get("kategorie_filter", ""),
-                        kategorie2_filter=params_source.get("kategorie2_filter", ""),
-                        beschreibung_filter=params_source.get("beschreibung_filter", ""),
-                    )
-                )
+                # Baue Redirect-URL mit allen Filter-Parametern
+                # Nur Parameter mit Werten hinzufügen, um URL sauber zu halten
+                redirect_params = {}
+                if params_source.get("year"):
+                    redirect_params["year"] = params_source.get("year")
+                if params_source.getlist("month"):
+                    redirect_params["month"] = params_source.getlist("month")
+                if params_source.get("page"):
+                    redirect_params["page"] = params_source.get("page", 1)
+                if params_source.get("konto"):
+                    redirect_params["konto"] = params_source.get("konto")
+                if params_source.get("kategorie_filter"):
+                    redirect_params["kategorie_filter"] = params_source.get("kategorie_filter")
+                if params_source.get("kategorie2_filter"):
+                    redirect_params["kategorie2_filter"] = params_source.get("kategorie2_filter")
+                if params_source.get("beschreibung_filter"):
+                    redirect_params["beschreibung_filter"] = params_source.get("beschreibung_filter")
+                
+                return redirect(url_for("dashboard.buchungen", **redirect_params))
             else:
                 return redirect(url_for("dashboard.dashboard", year=params_source.get("year"), month=params_source.getlist("month"), page=params_source.get("page", 1)))
         except Exception as exc:
@@ -218,6 +225,29 @@ def edit_buchung(buchung_id):
             flash("Buchung nicht gefunden.", "error")
             return redirect(url_for("dashboard.dashboard"))
 
+        beleg_pfad = row[10] if has_beleg_column and len(row) > 10 else None
+        
+        # Prüfe, ob Beleg-Datei wirklich existiert (falls beleg_pfad vorhanden)
+        if beleg_pfad:
+            full_path = get_beleg_path(beleg_pfad)
+            if not full_path or not os.path.exists(full_path):
+                # Datei existiert nicht - bereinige Datenbankeintrag
+                from flask import current_app
+                current_app.logger.warning(
+                    f"Beleg-Datei nicht gefunden für Buchung {buchung_id}: {beleg_pfad}. "
+                    f"Bereinige Datenbankeintrag beim Laden."
+                )
+                try:
+                    cur = conn.cursor()
+                    cur.execute("UPDATE buchungen SET beleg_pfad = NULL WHERE id = %s", (buchung_id,))
+                    conn.commit()
+                    cur.close()
+                    current_app.logger.info(f"Datenbankeintrag für Buchung {buchung_id} bereinigt (beleg_pfad auf NULL gesetzt)")
+                    beleg_pfad = None  # Setze auf None, damit Template es nicht anzeigt
+                except Exception as db_error:
+                    current_app.logger.error(f"Fehler beim Bereinigen des Datenbankeintrags für Buchung {buchung_id}: {db_error}")
+                    conn.rollback()
+        
         buchung = {
             "id": row[0],
             "datum": row[1],
@@ -229,7 +259,7 @@ def edit_buchung(buchung_id):
             "kategorie2": row[7] or "",
             "konto": row[8] or "",
             "manually_edit": int(row[9] or 0),
-            "beleg_pfad": row[10] if has_beleg_column and len(row) > 10 else None,  # beleg_pfad (kann None sein wenn Migration noch nicht ausgeführt)
+            "beleg_pfad": beleg_pfad,  # Bereinigter Wert (None wenn Datei nicht existiert)
         }
 
     kategorien = fetch_categories()
@@ -263,18 +293,25 @@ def delete_buchung(buchung_id):
     return_to = request.args.get("return_to", "")
     
     if return_to == "buchungen":
-        return redirect(
-            url_for(
-                "dashboard.buchungen",
-                year=request.args.get("year"),
-                month=request.args.getlist("month"),
-                page=request.args.get("page", 1),
-                konto=request.args.get("konto", ""),
-                kategorie_filter=request.args.get("kategorie_filter", ""),
-                kategorie2_filter=request.args.get("kategorie2_filter", ""),
-                beschreibung_filter=request.args.get("beschreibung_filter", ""),
-            )
-        )
+        # Baue Redirect-URL mit allen Filter-Parametern
+        # Nur Parameter mit Werten hinzufügen, um URL sauber zu halten
+        redirect_params = {}
+        if request.args.get("year"):
+            redirect_params["year"] = request.args.get("year")
+        if request.args.getlist("month"):
+            redirect_params["month"] = request.args.getlist("month")
+        if request.args.get("page"):
+            redirect_params["page"] = request.args.get("page", 1)
+        if request.args.get("konto"):
+            redirect_params["konto"] = request.args.get("konto")
+        if request.args.get("kategorie_filter"):
+            redirect_params["kategorie_filter"] = request.args.get("kategorie_filter")
+        if request.args.get("kategorie2_filter"):
+            redirect_params["kategorie2_filter"] = request.args.get("kategorie2_filter")
+        if request.args.get("beschreibung_filter"):
+            redirect_params["beschreibung_filter"] = request.args.get("beschreibung_filter")
+        
+        return redirect(url_for("dashboard.buchungen", **redirect_params))
     else:
         return redirect(
             url_for(
@@ -306,16 +343,35 @@ def download_beleg(buchung_id):
             cur = conn.cursor()
             cur.execute("SELECT beleg_pfad FROM buchungen WHERE id=%s", (buchung_id,))
             result = cur.fetchone()
-            cur.close()
             
             if not result or not result[0]:
+                cur.close()
                 abort(404, description="Kein Beleg für diese Buchung gefunden")
             
             beleg_pfad = result[0]
             full_path = get_beleg_path(beleg_pfad)
             
+            # Wenn Datei nicht existiert, bereinige Datenbankeintrag
             if not full_path or not os.path.exists(full_path):
-                abort(404, description="Beleg-Datei nicht gefunden")
+                from flask import current_app
+                current_app.logger.warning(
+                    f"Beleg-Datei nicht gefunden für Buchung {buchung_id}: {beleg_pfad}. "
+                    f"Bereinige Datenbankeintrag."
+                )
+                
+                # Setze beleg_pfad auf NULL in der Datenbank
+                try:
+                    cur.execute("UPDATE buchungen SET beleg_pfad = NULL WHERE id = %s", (buchung_id,))
+                    conn.commit()
+                    current_app.logger.info(f"Datenbankeintrag für Buchung {buchung_id} bereinigt (beleg_pfad auf NULL gesetzt)")
+                except Exception as db_error:
+                    current_app.logger.error(f"Fehler beim Bereinigen des Datenbankeintrags für Buchung {buchung_id}: {db_error}")
+                    conn.rollback()
+                
+                cur.close()
+                abort(404, description="Beleg-Datei wurde nicht gefunden. Der Eintrag wurde automatisch bereinigt.")
+            
+            cur.close()
             
             # Dateiname für Download extrahieren
             filename = os.path.basename(full_path)
@@ -340,6 +396,9 @@ def download_beleg(buchung_id):
             )
             
     except Exception as e:
-        from flask import current_app
-        current_app.logger.error(f"Fehler beim Download des Belegs {buchung_id}: {e}")
+        from flask import current_app, abort
+        # Prüfe, ob es bereits ein abort() war (hat status_code Attribut)
+        if hasattr(e, 'code'):
+            raise  # Re-raise abort exceptions
+        current_app.logger.error(f"Fehler beim Download des Belegs {buchung_id}: {e}", exc_info=True)
         abort(500, description="Fehler beim Laden des Belegs")
