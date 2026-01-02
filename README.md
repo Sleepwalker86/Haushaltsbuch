@@ -498,37 +498,6 @@ Der Quellcode darf für den **eigenen Gebrauch** angepasst und erweitert werden.
 
 Eine **Weitergabe, Veröffentlichung oder kommerzielle Nutzung veränderter Versionen ist nicht gestattet**.
 
----
-
-## Entwicklung & CI/CD
-
-### GitHub Actions
-
-Das Projekt verwendet GitHub Actions für automatische Tests und Builds:
-
-- **CI Pipeline** (`ci.yml`): Prüft Code-Qualität, Docker Builds und Migrationen bei jedem Commit
-- **Docker Build** (`docker-build.yml`): Baut und pusht automatisch Docker Images bei Tags oder Push zu main
-- **Code Quality** (`code-quality.yml`): Erweiterte Code-Qualitätsprüfungen
-- **Release** (`release.yml`): Erstellt automatisch GitHub Releases bei Version-Tags
-
-Siehe [.github/workflows/README.md](.github/workflows/README.md) für Details.
-
-### Lokale Entwicklung
-
-```bash
-# Code formatieren
-black .
-
-# Imports sortieren
-isort .
-
-# Linting
-flake8 .
-
-# Syntax prüfen
-python -m py_compile app.py
-```
-
 Wenn du den Code in einem anderen Kontext einsetzen willst (z. B. in einem Unternehmen oder als Open‑Source‑Projekt), kläre dies bitte vorher mit dem Autor.
 
 ---
