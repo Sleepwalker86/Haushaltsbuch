@@ -15,7 +15,7 @@ from datetime import datetime
 # Log-Verzeichnis (konfigurierbar über Umgebungsvariable)
 LOG_DIR = os.environ.get('LOG_DIR', os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-    'logs'
+    'data', 'log'
 ))
 
 # Stelle sicher, dass Log-Verzeichnis existiert

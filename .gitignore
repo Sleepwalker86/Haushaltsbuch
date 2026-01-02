@@ -5,7 +5,7 @@ env/
 ENV/
 __pycache__/
 import/
-image/
+data/
 
 
 # Python
@@ -48,6 +48,8 @@ instance/
 
 # Logs
 *.log
+data/log/
+# Alte logs/ Verzeichnis (falls noch vorhanden)
 logs/
 
 # Database

@@ -194,7 +194,10 @@ docker compose -f docker-compose.external-db.yml restart app
 
 Die folgenden Verzeichnisse werden als Volumes gemountet:
 - `./import` - CSV-Dateien zum Importieren
-- `./image` - Bilder für Paperless
+- `./data` - Datenverzeichnis
+  - `./data/invoices` - Belege (Fotos/PDFs) zu Buchungen
+  - `./data/paperless` - Bilder für Paperless-Upload
+  - `./data/log` - Log-Dateien der Anwendung
 
 **Hinweis:** Die `config.json` wird automatisch im Container erstellt und bei jedem Start aus den Umgebungsvariablen aktualisiert. Sie wird nicht als Volume gemountet.
 

@@ -21,9 +21,9 @@ PAPERLESS_CONFIG = config.get("PAPERLESS", {})
 # =============================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMPORT_DIR = os.path.join(BASE_DIR, "import")
-IMAGE_DIR = os.path.join(BASE_DIR, "image")
+PAPERLESS_DIR = os.path.join(BASE_DIR, "data", "paperless")
 
-os.makedirs(IMAGE_DIR, exist_ok=True)
+os.makedirs(PAPERLESS_DIR, exist_ok=True)
 
 # =============================
 # HILFSFUNKTIONEN
@@ -223,28 +223,31 @@ if PAPERLESS_CONFIG.get("ip") and PAPERLESS_CONFIG.get("token"):
     # Unterstützte Bildformate
     image_extensions = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".pdf"}
     
-    # Alle Bilder im image-Ordner finden
-    image_files = [
-        f for f in os.listdir(IMAGE_DIR)
-        if os.path.splitext(f.lower())[1] in image_extensions
-    ]
-    
-    if image_files:
-        print(f"\n📸 {len(image_files)} Bild(er) gefunden, sende an Paperless...")
-        
-        for image_file in image_files:
-            image_path = os.path.join(IMAGE_DIR, image_file)
-            print(f"📤 Sende: {image_file}")
-            
-            if send_image_to_paperless(image_path, paperless_url, paperless_token, paperless_document_type_id):
-                try:
-                    os.remove(image_path)
-                    print(f"✅ {image_file} erfolgreich gesendet und gelöscht")
-                except Exception as e:
-                    print(f"⚠️  {image_file} gesendet, aber konnte nicht gelöscht werden: {e}")
-            else:
-                print(f"❌ {image_file} konnte nicht gesendet werden, bleibt erhalten")
+    # Alle Bilder im data/paperless-Ordner finden
+    if not os.path.exists(PAPERLESS_DIR):
+        print("\n📸 Paperless-Ordner existiert nicht, überspringe Bild-Upload")
     else:
-        print("\n📸 Keine neuen Bilder gefunden")
+        image_files = [
+            f for f in os.listdir(PAPERLESS_DIR)
+            if os.path.splitext(f.lower())[1] in image_extensions
+        ]
+        
+        if image_files:
+            print(f"\n📸 {len(image_files)} Bild(er) gefunden in data/paperless, sende an Paperless...")
+            
+            for image_file in image_files:
+                image_path = os.path.join(PAPERLESS_DIR, image_file)
+                print(f"📤 Sende: {image_file}")
+                
+                if send_image_to_paperless(image_path, paperless_url, paperless_token, paperless_document_type_id):
+                    try:
+                        os.remove(image_path)
+                        print(f"✅ {image_file} erfolgreich gesendet und gelöscht")
+                    except Exception as e:
+                        print(f"⚠️  {image_file} gesendet, aber konnte nicht gelöscht werden: {e}")
+                else:
+                    print(f"❌ {image_file} konnte nicht gesendet werden, bleibt erhalten")
+        else:
+            print("\n📸 Keine neuen Bilder in data/paperless gefunden")
 else:
     print("\n📸 Paperless-Konfiguration nicht gefunden, überspringe Bild-Upload")

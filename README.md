@@ -315,8 +315,8 @@ services:
       - "5050:5001"
     volumes:
       - ./import:/app/import
-      - ./image:/app/image
-      - ./logs:/app/logs
+      - ./data:/app/data
+      # Logs werden unter ./data/log gespeichert (Teil des data-Volumes)
     networks:
       - finanzapp_network
 
@@ -450,10 +450,10 @@ Dann ist die App unter `http://127.0.0.1:5001` erreichbar.
 1. **Dokumente fotografieren** (`/paperless`):
    - Direkter Zugriff auf die iPhone/iPad-Kamera über die Web-Oberfläche.
    - Unterstützte Formate: JPG, PNG, HEIC, HEIF, PDF.
-   - Bilder werden im Ordner `image/` gespeichert.
+   - Bilder werden im Ordner `data/paperless/` gespeichert.
 
 2. **Automatischer Upload**:
-   - Das Skript `import_data.py` prüft bei jedem Lauf (alle 10 Minuten via Timer) den `image/`-Ordner.
+   - Das Skript `import_data.py` prüft bei jedem Lauf (alle 10 Minuten via Timer) den `data/paperless/`-Ordner.
    - Neue Bilder werden automatisch an die konfigurierte Paperless-Instanz gesendet.
    - Bei erfolgreichem Upload werden die Bilder gelöscht.
    - Bei Fehlern bleiben die Bilder erhalten für manuelle Nachbearbeitung.
@@ -497,6 +497,37 @@ Dann ist die App unter `http://127.0.0.1:5001` erreichbar.
 Der Quellcode darf für den **eigenen Gebrauch** angepasst und erweitert werden.
 
 Eine **Weitergabe, Veröffentlichung oder kommerzielle Nutzung veränderter Versionen ist nicht gestattet**.
+
+---
+
+## Entwicklung & CI/CD
+
+### GitHub Actions
+
+Das Projekt verwendet GitHub Actions für automatische Tests und Builds:
+
+- **CI Pipeline** (`ci.yml`): Prüft Code-Qualität, Docker Builds und Migrationen bei jedem Commit
+- **Docker Build** (`docker-build.yml`): Baut und pusht automatisch Docker Images bei Tags oder Push zu main
+- **Code Quality** (`code-quality.yml`): Erweiterte Code-Qualitätsprüfungen
+- **Release** (`release.yml`): Erstellt automatisch GitHub Releases bei Version-Tags
+
+Siehe [.github/workflows/README.md](.github/workflows/README.md) für Details.
+
+### Lokale Entwicklung
+
+```bash
+# Code formatieren
+black .
+
+# Imports sortieren
+isort .
+
+# Linting
+flake8 .
+
+# Syntax prüfen
+python -m py_compile app.py
+```
 
 Wenn du den Code in einem anderen Kontext einsetzen willst (z. B. in einem Unternehmen oder als Open‑Source‑Projekt), kläre dies bitte vorher mit dem Autor.
 

@@ -1,0 +1,241 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Python Code Quality Checks
+  lint-and-format:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black pylint
+        pip install -r requirements.txt
+    
+    - name: Check code formatting with Black
+      run: |
+        black --check --diff .
+      continue-on-error: true
+    
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+    
+    - name: Lint with pylint
+      run: |
+        pylint --disable=all --enable=E,F --fail-under=5 routes/ utils/ services/ || true
+      continue-on-error: true
+    
+    - name: Check Python syntax
+      run: |
+        python -m py_compile app.py
+        find . -name "*.py" -not -path "./.venv/*" -not -path "./venv/*" -exec python -m py_compile {} \;
+    
+    - name: Check for common issues
+      run: |
+        # Prüfe auf TODO/FIXME ohne Issue-Nummer
+        if grep -r "TODO\|FIXME" --include="*.py" . | grep -v "# TODO:" | grep -v "# FIXME:"; then
+          echo "⚠️  Gefundene TODO/FIXME Kommentare"
+        fi
+
+  # Job 2: Test Docker Build
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false
+        tags: finanzapp:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Test Docker image
+      run: |
+        docker run --rm finanzapp:test python -c "import flask; import mysql.connector; print('✅ Imports erfolgreich')"
+        docker run --rm finanzapp:test python -m py_compile app.py
+        echo "✅ Docker Image Build erfolgreich"
+
+  # Job 3: Test Migrations
+  test-migrations:
+    name: Test Database Migrations
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Wait for MySQL
+      run: |
+        while ! mysqladmin ping -h 127.0.0.1 -u root -ptest_password --silent; do
+          echo "Warte auf MySQL..."
+          sleep 2
+        done
+        echo "✅ MySQL ist bereit"
+    
+    - name: Test migrations
+      env:
+        DB_HOST: 127.0.0.1
+        DB_USER: root
+        DB_PASSWORD: test_password
+        DB_NAME: test_db
+      run: |
+        python migrate.py
+        echo "✅ Migrationen erfolgreich ausgeführt"
+    
+    - name: Verify schema
+      env:
+        DB_HOST: 127.0.0.1
+        DB_USER: root
+        DB_PASSWORD: test_password
+        DB_NAME: test_db
+      run: |
+        python -c "
+        import mysql.connector
+        conn = mysql.connector.connect(
+            host='127.0.0.1',
+            user='root',
+            password='test_password',
+            database='test_db'
+        )
+        cur = conn.cursor()
+        cur.execute('SHOW TABLES')
+        tables = [row[0] for row in cur.fetchall()]
+        print(f'✅ Gefundene Tabellen: {tables}')
+        assert 'buchungen' in tables, 'Tabelle buchungen fehlt'
+        assert 'schema_migrations' in tables, 'Tabelle schema_migrations fehlt'
+        cur.close()
+        conn.close()
+        print('✅ Schema-Verifikation erfolgreich')
+        "
+
+  # Job 4: Test Import Scripts
+  test-imports:
+    name: Test Import Scripts
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Test import syntax
+      run: |
+        python -c "import app; import db; import migrate; import init_db"
+        python -c "from routes import dashboard, actions, settings, upload"
+        python -c "from utils import beleg_upload, csrf, csv_parser, helpers, logging_config, version"
+        python -c "from services import data_service"
+        echo "✅ Alle Imports erfolgreich"
+
+  # Job 5: Security Checks
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Bandit security linter
+      uses: securecodewarrior/github-action-bandit@v1
+      with:
+        path: .
+        exit_zero: true
+      continue-on-error: true
+    
+    - name: Check for secrets
+      run: |
+        # Prüfe auf mögliche hardcodierte Secrets
+        if grep -r "password.*=.*['\"].*[A-Za-z0-9]" --include="*.py" . | grep -v "test_password" | grep -v "# "; then
+          echo "⚠️  Mögliche hardcodierte Passwörter gefunden"
+        fi
+        if grep -r "SECRET_KEY.*=.*['\"].*[A-Za-z0-9]" --include="*.py" . | grep -v "change-me" | grep -v "# "; then
+          echo "⚠️  Mögliche hardcodierte Secret Keys gefunden"
+        fi
+
+  # Job 6: Documentation Check
+  docs:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Check README exists
+      run: |
+        test -f README.md && echo "✅ README.md vorhanden" || exit 1
+    
+    - name: Check for broken links in README
+      run: |
+        # Einfache Prüfung auf Markdown-Links
+        if grep -r "\[.*\](" README.md | grep -v "http" | grep -v "mailto"; then
+          echo "⚠️  Lokale Links gefunden - bitte prüfen"
+        fi
+      continue-on-error: true

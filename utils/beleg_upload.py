@@ -14,10 +14,10 @@ from flask import current_app
 
 
 # Basis-Verzeichnis für Belege (konfigurierbar)
-# Standard: /app/image im Container, ./image lokal
+# Standard: /app/data/invoices im Container, ./data/invoices lokal
 BELEG_BASE_DIR = os.environ.get('BELEG_BASE_DIR', os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-    'image'
+    'data', 'invoices'
 ))
 
 # Erlaubte Dateitypen für Belege

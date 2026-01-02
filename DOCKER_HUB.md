@@ -207,7 +207,7 @@ docker run -d \
   --name finanzapp \
   -p 5001:5001 \
   -v $(pwd)/import:/app/import \
-  -v $(pwd)/image:/app/image \
+  -v $(pwd)/data:/app/data \
   -e DB_HOST=192.168.10.99 \
   -e DB_USER=username \
   -e DB_PASSWORD=password \

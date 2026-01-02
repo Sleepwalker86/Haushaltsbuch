@@ -47,9 +47,9 @@ services:
       - PAPERLESS_ENABLED=${PAPERLESS_ENABLED:-false}
     volumes:
       - ./import:/app/import
-      - ./image:/app/image
-      - ./logs:/app/logs
+      - ./data:/app/data
       # config.json wird automatisch im Container erstellt, nicht gemountet
+      # Logs werden unter /app/data/log gespeichert (Teil des data-Volumes)
     ports:
       - "${APP_PORT:-5001}:5001"
     networks:

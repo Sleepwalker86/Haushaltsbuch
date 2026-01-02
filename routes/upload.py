@@ -37,14 +37,14 @@ def paperless():
             return redirect(url_for("upload.paperless"))
 
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        image_dir = os.path.join(base_dir, "image")
-        os.makedirs(image_dir, exist_ok=True)
+        paperless_dir = os.path.join(base_dir, "data", "paperless")
+        os.makedirs(paperless_dir, exist_ok=True)
 
         # Eindeutigen Dateinamen erstellen mit Timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = os.path.splitext(filename)[0]
         new_filename = f"{timestamp}_{safe_name}{file_ext}"
-        target_path = os.path.join(image_dir, new_filename)
+        target_path = os.path.join(paperless_dir, new_filename)
 
         try:
             file.save(target_path)

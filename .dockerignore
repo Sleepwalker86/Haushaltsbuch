@@ -44,7 +44,7 @@ config.json
 .env.local
 .env.example
 import/
-image/
+data/
 
 # Installations-Skripte (nicht im Container benötigt)
 install.sh
