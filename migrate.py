@@ -15,7 +15,13 @@ from db import get_connection, load_db_config
 
 
 def get_migration_table(conn):
-    """Erstellt die schema_migrations Tabelle, falls sie nicht existiert."""
+    """
+    Erstellt die schema_migrations Tabelle, falls sie nicht existiert.
+    
+    Hinweis: Die Tabelle sollte eigentlich bereits durch Migration 001 erstellt werden.
+    Diese Funktion dient als Fallback für den Fall, dass die Migration noch nicht
+    ausgeführt wurde oder die Tabelle aus anderen Gründen fehlt.
+    """
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS schema_migrations (

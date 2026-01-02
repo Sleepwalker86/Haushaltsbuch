@@ -7,10 +7,93 @@
   <div class="mb-3">
     {% for msg in get_flashed_messages(with_categories=true) %}
       {% set cat, text = msg %}
-      <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
-        {{ text }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
+      {% if 'importiert' in text.lower() or 'fehler' in text.lower() or 'nicht importiert' in text.lower() or 'duplikat' in text.lower() %}
+        {# Detaillierte Anzeige für Import-Ergebnisse #}
+        <div class="alert alert-{{ 'success' if cat == 'success' else 'warning' if cat == 'warning' else 'info' if cat == 'info' else 'danger' }} alert-dismissible fade show" role="alert">
+          <div class="d-flex align-items-start">
+            <div class="flex-grow-1">
+              <h6 class="alert-heading mb-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Import-Ergebnis
+              </h6>
+              <div class="mt-2">
+                {% if '|' in text %}
+                  {# Mehrere Statistiken vorhanden #}
+                  {% set parts = text.split('|') %}
+                  {% for part in parts %}
+                    {% set part_clean = part.strip() %}
+                    {% if 'erfolgreich importiert' in part_clean %}
+                      {% set number = part_clean.split()[0] %}
+                      <div class="mb-2 d-flex align-items-center">
+                        <span class="badge bg-success me-2" style="font-size: 0.9em;">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          Erfolgreich
+                        </span>
+                        <span><strong>{{ number }}</strong> {{ part_clean.replace(number, '').strip() }}</span>
+                      </div>
+                    {% elif 'konnten nicht importiert werden' in part_clean %}
+                      {% set number = part_clean.split()[0] %}
+                      <div class="mb-2 d-flex align-items-center">
+                        <span class="badge bg-danger me-2" style="font-size: 0.9em;">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                          </svg>
+                          Fehler
+                        </span>
+                        <span><strong>{{ number }}</strong> {{ part_clean.replace(number, '').strip() }}</span>
+                      </div>
+                    {% elif 'übersprungen' in part_clean or 'duplikat' in part_clean.lower() %}
+                      {% set number = part_clean.split()[0] %}
+                      <div class="mb-2 d-flex align-items-center">
+                        <span class="badge bg-warning text-dark me-2" style="font-size: 0.9em;">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                          </svg>
+                          Übersprungen
+                        </span>
+                        <span><strong>{{ number }}</strong> {{ part_clean.replace(number, '').strip() }}</span>
+                      </div>
+                    {% else %}
+                      <div class="mb-2">{{ part_clean }}</div>
+                    {% endif %}
+                  {% endfor %}
+                {% elif 'keine neuen buchungen gefunden' in text.lower() %}
+                  <div class="d-flex align-items-center">
+                    <span class="badge bg-info me-2" style="font-size: 0.9em;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                      Info
+                    </span>
+                    <span>{{ text }}</span>
+                  </div>
+                {% else %}
+                  {{ text }}
+                {% endif %}
+              </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        </div>
+      {% else %}
+        {# Standard-Alert für andere Meldungen #}
+        <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+          {{ text }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endif %}
     {% endfor %}
   </div>
 {% endif %}

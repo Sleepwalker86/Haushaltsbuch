@@ -1,6 +1,14 @@
 -- Initiale Datenbankstruktur
 -- Diese Migration erstellt alle Basis-Tabellen
 
+-- Migration-Tabelle für Versionsverwaltung
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version VARCHAR(50) PRIMARY KEY,
+  applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  description TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Haupttabelle für Buchungen
 CREATE TABLE IF NOT EXISTS buchungen (
   id INT(11) NOT NULL AUTO_INCREMENT,
   datum DATE NOT NULL,

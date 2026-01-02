@@ -92,18 +92,33 @@ def upload_csv():
                 text=True
             )
             
-            # Anzahl der importierten Buchungen aus dem Output extrahieren
+            # Anzahl der importierten Buchungen und Fehler aus dem Output extrahieren
             total_imported = 0
+            total_errors = 0
+            
             # Suche nach "🎉 X Buchungen importiert" im Output
             matches = re.findall(r'🎉\s*(\d+)\s*Buchungen importiert', result.stdout)
             if matches:
                 total_imported = sum(int(m) for m in matches)
             
+            # Suche nach "⚠️  X Zeilen konnten nicht importiert werden" im Output
+            error_matches = re.findall(r'⚠️\s*(\d+)\s*Zeilen konnten nicht importiert werden', result.stdout)
+            if error_matches:
+                total_errors = sum(int(m) for m in error_matches)
+            
+            # Detaillierte Flash-Meldung mit Statistiken
+            messages = []
             if total_imported > 0:
-                flash(f"Daten wurden importiert und automatisch verarbeitet. {total_imported} Buchung(en) wurden importiert.", "success")
-                current_app.logger.info(f"CSV-Import erfolgreich: {total_imported} Buchungen importiert aus {filename}")
+                messages.append(f"{total_imported} Buchung(en) erfolgreich importiert")
+            if total_errors > 0:
+                messages.append(f"{total_errors} Zeile(n) konnten nicht importiert werden")
+            
+            if messages:
+                flash_message = f"Daten wurden importiert und automatisch verarbeitet. {' | '.join(messages)}."
+                flash(flash_message, "success" if total_imported > 0 else "warning")
+                current_app.logger.info(f"CSV-Import abgeschlossen: {total_imported} importiert, {total_errors} Fehler aus {filename}")
             else:
-                flash("Daten wurden importiert und automatisch verarbeitet. Keine neuen Buchungen gefunden (möglicherweise Duplikate).", "success")
+                flash("Daten wurden importiert und automatisch verarbeitet. Keine neuen Buchungen gefunden (möglicherweise Duplikate).", "info")
                 current_app.logger.info(f"CSV-Import abgeschlossen: Keine neuen Buchungen gefunden in {filename}")
         except subprocess.CalledProcessError as exc:
             current_app.logger.error(f"Fehler beim CSV-Import von {filename}: {exc}", exc_info=True)
