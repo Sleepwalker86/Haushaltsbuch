@@ -60,3 +60,6 @@ logs/
 # Config (falls sensible Daten enthalten)
 config.json
 
+# Release Notes werden versioniert
+# releases/
+
