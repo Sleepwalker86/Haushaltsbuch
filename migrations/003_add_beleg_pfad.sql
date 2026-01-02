@@ -8,5 +8,6 @@ ALTER TABLE buchungen
 ADD COLUMN beleg_pfad VARCHAR(500) DEFAULT NULL;
 
 -- Optional: Index für schnelleres Suchen nach Buchungen mit Belegen
--- MySQL 8.0+ unterstützt IF NOT EXISTS bei CREATE INDEX
-CREATE INDEX IF NOT EXISTS idx_buchungen_beleg_pfad ON buchungen(beleg_pfad);
+-- Hinweis: Falls der Index bereits existiert, wird der Fehler 1061 (Duplicate key) 
+-- von der Migration-Logik abgefangen und ignoriert
+CREATE INDEX idx_buchungen_beleg_pfad ON buchungen(beleg_pfad);

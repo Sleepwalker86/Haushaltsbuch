@@ -88,6 +88,53 @@ def apply_migration(conn, migration):
     sql_clean = ' '.join(lines)
     statements = [s.strip() for s in sql_clean.split(';') if s.strip()]
     
+    # Prüfe, ob Migration nur Kommentare enthält (z.B. Beispiel-Migrationen)
+    # Entferne Statements, die nur aus Kommentaren bestehen
+    actual_statements = []
+    for stmt in statements:
+        # Entferne alle Kommentare aus dem Statement
+        stmt_clean = stmt
+        if '--' in stmt_clean:
+            # Entferne Kommentare am Zeilenende
+            stmt_lines = stmt_clean.split('\n')
+            cleaned_lines = []
+            for line in stmt_lines:
+                if '--' in line:
+                    comment_pos = line.find('--')
+                    line = line[:comment_pos].strip()
+                if line.strip():
+                    cleaned_lines.append(line.strip())
+            stmt_clean = ' '.join(cleaned_lines)
+        
+        # Wenn nach Entfernen der Kommentare noch SQL-Code übrig ist, ist es ein echtes Statement
+        if stmt_clean and not stmt_clean.isspace():
+            actual_statements.append(stmt)
+    
+    # Wenn keine echten Statements vorhanden sind, überspringe die Migration
+    if not actual_statements:
+        print(f"   ⚠️  Migration {migration['version']} enthält nur Kommentare/Beispiele, überspringe...")
+        # Markiere trotzdem als angewendet, damit sie nicht erneut geprüft wird
+        description = migration['file'].replace('.sql', '').replace(f"{migration['version']}_", "")
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "INSERT INTO schema_migrations (version, description) VALUES (%s, %s)",
+                (migration['version'], description)
+            )
+            conn.commit()
+            print(f"✅ Migration {migration['version']} als Beispiel-Migration markiert (übersprungen)")
+        except mysql.connector.Error as e:
+            # Ignoriere Fehler wenn Migration bereits markiert ist
+            if e.errno != 1062:  # 1062 = Duplicate entry
+                raise
+            print(f"   → Migration {migration['version']} war bereits markiert")
+        finally:
+            cur.close()
+        return
+    
+    # Verwende nur die echten Statements
+    statements = actual_statements
+    
     print(f"   Gefundene Statements: {len(statements)}")
     for i, stmt in enumerate(statements, 1):
         print(f"   Statement {i}: {stmt[:100]}...")
@@ -129,7 +176,8 @@ def apply_migration(conn, migration):
                     # 1060 = Duplicate column name
                     # 1061 = Duplicate key name
                     # 1054 = Unknown column (kann ignoriert werden bei DROP COLUMN)
-                    if error_code in (1060, 1061) or 'duplicate' in error_msg:
+                    # 1062 = Duplicate entry (für UNIQUE Constraints)
+                    if error_code in (1060, 1061, 1062) or 'duplicate' in error_msg:
                         print(f"   ⚠️  Warnung bei Statement {i}: {e}")
                         print(f"   → Spalte/Index existiert bereits, überspringe...")
                         continue
@@ -145,9 +193,26 @@ def apply_migration(conn, migration):
         print(f"   ✓ Alle Statements erfolgreich ausgeführt")
         
         # Verifiziere, dass die Migration wirklich erfolgreich war
-        # (z.B. bei ALTER TABLE prüfen, ob Spalte existiert)
+        # Prüfe nur, wenn tatsächlich ein ALTER TABLE Statement mit beleg_pfad ausgeführt wurde
+        # (nicht nur wenn es im Kommentar vorkommt)
         migration_successful = True
-        if 'beleg_pfad' in sql.lower() or 'add column' in sql.lower():
+        beleg_pfad_expected = False
+        
+        # Prüfe, ob in den tatsächlich ausgeführten Statements (nicht in Kommentaren) 
+        # ein ALTER TABLE mit beleg_pfad vorkommt
+        for statement in statements:
+            statement_clean = statement.upper().strip()
+            # Ignoriere Kommentare und leere Statements
+            if statement_clean.startswith('--') or not statement_clean:
+                continue
+            # Prüfe, ob ein ALTER TABLE Statement mit beleg_pfad tatsächlich ausgeführt wurde
+            if ('ALTER TABLE' in statement_clean and 
+                'ADD COLUMN' in statement_clean and 
+                'BELEG_PFAD' in statement_clean):
+                beleg_pfad_expected = True
+                break
+        
+        if beleg_pfad_expected:
             print(f"   → Verifiziere, ob Spalte beleg_pfad erstellt wurde...")
             cur.execute("""
                 SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 

@@ -1,5 +1,11 @@
 # Anleitung: Git Release v1.1.0 und Docker Image erstellen
 
+## ⚠️ WICHTIG: Reihenfolge beachten!
+
+1. **Zuerst**: Code committen und Docker Image bauen/hochladen
+2. **Dann**: Git Tag erstellen und GitHub Release
+3. **Zuletzt**: Auf laufenden Systemen updaten
+
 ## Schritt 1: Version prüfen
 
 Die Version wurde bereits in `utils/version.py` auf `v1.1.0` aktualisiert.
@@ -21,14 +27,35 @@ Bitte prüfen und ggf. anpassen:
 # Status prüfen
 git status
 
-# Änderungen hinzufügen
-git add utils/version.py releases/
+# Änderungen hinzufügen (inkl. Migration-Fix)
+git add utils/version.py releases/ migrate.py
 
 # Commit erstellen
-git commit -m "Release v1.1.0: Datenstruktur-Umstellung, Logging-System und Verbesserungen"
+git commit -m "Release v1.1.0: Datenstruktur-Umstellung, Logging-System und Verbesserungen
+
+- Fix: Migration-Verifikation für Beispiel-Migrationen verbessert
+- Beispiel-Migrationen werden jetzt korrekt übersprungen"
+
+# Pushen
+git push origin main
 ```
 
-## Schritt 4: Git Tag erstellen
+## Schritt 4: Docker Image bauen und pushen (ZUERST!)
+
+**⚠️ WICHTIG**: Das Image muss VOR dem Git Tag hochgeladen werden!
+
+```bash
+# Docker Image bauen und taggen
+./build-and-push.sh 1.1.0
+
+# Oder manuell:
+docker build -t sleepwalker86/finanzapp:1.1.0 .
+docker build -t sleepwalker86/finanzapp:latest .
+docker push sleepwalker86/finanzapp:1.1.0
+docker push sleepwalker86/finanzapp:latest
+```
+
+## Schritt 5: Git Tag erstellen
 
 ```bash
 # Annotated Tag erstellen (empfohlen)
@@ -40,6 +67,7 @@ Hauptänderungen:
 - Verbesserte Import-Statistiken
 - Optimierte Docker Volumes
 - Verbesserte Fehlerbehandlung
+- Fix: Migration-Verifikation für Beispiel-Migrationen
 
 Siehe releases/v1.1.0.md für Details."
 
@@ -48,7 +76,7 @@ git tag -l
 git show v1.1.0
 ```
 
-## Schritt 5: Tag und Commits pushen
+## Schritt 6: Tag und Commits pushen
 
 ```bash
 # Commits pushen
@@ -58,15 +86,17 @@ git push origin main
 git push origin v1.1.0
 ```
 
-## Schritt 6: GitHub Release erstellen
+## Schritt 7: GitHub Release erstellen
 
-1. Gehe zu: https://github.com/Sleepwalker86/pdf_to_data/releases/new
+1. Gehe zu: https://github.com/Sleepwalker86/Haushaltsbuch/releases/new
 2. Wähle Tag: `v1.1.0`
 3. Titel: `Release v1.1.0`
 4. Beschreibung: Kopiere den Inhalt aus `releases/v1.1.0.md`
 5. Klicke auf "Publish release"
 
-## Schritt 7: Docker Image bauen und pushen
+## Schritt 7: Docker Image bauen und pushen (WICHTIG: VOR dem Tag!)
+
+**⚠️ WICHTIG**: Das Image muss VOR dem Git Tag hochgeladen werden, damit laufende Systeme es sofort nutzen können!
 
 ```bash
 # Docker Image bauen und taggen
@@ -77,6 +107,9 @@ docker build -t sleepwalker86/finanzapp:1.1.0 .
 docker build -t sleepwalker86/finanzapp:latest .
 docker push sleepwalker86/finanzapp:1.1.0
 docker push sleepwalker86/finanzapp:latest
+
+# Verifikation: Prüfe ob Image auf Docker Hub verfügbar ist
+# https://hub.docker.com/r/sleepwalker86/finanzapp/tags
 ```
 
 ## Schritt 8: Docker Hub Release Notes hinzufügen
@@ -100,6 +133,24 @@ git ls-remote --tags origin
 # https://hub.docker.com/r/sleepwalker86/finanzapp/tags
 ```
 
+## Schritt 9: Update auf laufenden Systemen
+
+**Erst NACH dem Image-Upload und Git Tag:**
+
+```bash
+# Container stoppen
+docker compose down
+
+# Neues Image pullen
+docker compose pull
+
+# Container neu starten
+docker compose up -d
+
+# Logs prüfen
+docker compose logs app | tail -50
+```
+
 ## Zusammenfassung der Änderungen in v1.1.0
 
 ### Breaking Changes
@@ -115,3 +166,12 @@ git ls-remote --tags origin
 ### Wichtig für Upgrades
 - Daten müssen manuell migriert werden (siehe Release Notes)
 - Docker Volumes müssen angepasst werden
+
+## ⚠️ Korrekte Reihenfolge für Release
+
+1. ✅ Code committen und pushen
+2. ✅ **Docker Image bauen und hochladen** (WICHTIG: VOR dem Tag!)
+3. ✅ Git Tag erstellen und pushen
+4. ✅ GitHub Release erstellen
+5. ✅ Docker Hub Release Notes hinzufügen
+6. ✅ Auf laufenden Systemen: `docker compose pull && docker compose up -d`
