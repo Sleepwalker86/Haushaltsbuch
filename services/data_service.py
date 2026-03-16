@@ -1,20 +1,35 @@
 """Datenbank-Service-Funktionen für die Anwendung."""
 import math
 import os
+from datetime import date, datetime
 from db import get_connection
+from utils.cache import cached
 
 
+@cached(timeout=3600)  # PERFORMANCE: Cache für 1 Stunde (statische Daten)
 def fetch_available_years():
-    """Holt alle verfügbaren Jahre aus der Datenbank."""
+    """
+    Holt alle verfügbaren Jahre aus der Datenbank.
+    
+    PERFORMANCE: Gecacht für 1 Stunde, da sich Jahre selten ändern.
+    """
     with get_connection() as conn:
         cur = conn.cursor()
+        # PERFORMANCE: YEAR() Funktion verhindert Index-Nutzung, aber hier notwendig für DISTINCT
+        # Alternative wäre GROUP BY, aber YEAR() ist hier akzeptabel da nur einmal pro Request
         cur.execute("SELECT DISTINCT YEAR(datum) FROM buchungen ORDER BY YEAR(datum) DESC")
         years = [str(row[0]) for row in cur.fetchall()]
         cur.close()
         return years
 
 
+@cached(timeout=1800)  # PERFORMANCE: Cache für 30 Minuten (selten ändernde Daten)
 def fetch_categories():
+    """
+    Holt alle Kategorien aus der Datenbank.
+    
+    PERFORMANCE: Gecacht für 30 Minuten, da Kategorien sich selten ändern.
+    """
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT name FROM category ORDER BY name")
@@ -49,20 +64,88 @@ def fetch_keyword_mappings():
         ]
 
 
-def fetch_category_summary(year=None, month=None):
+def _build_date_filter(year=None, month=None):
+    """
+    PERFORMANCE-OPTIMIERUNG: Erstellt Datumsfilter mit Datumsbereichen statt YEAR()/MONTH().
+    
+    Warum: YEAR(datum) und MONTH(datum) verhindern Index-Nutzung auf 'datum' Spalte.
+    Lösung: Verwende Datumsbereiche (datum >= 'YYYY-MM-DD' AND datum < 'YYYY-MM-DD'),
+           damit MySQL den Index auf 'datum' nutzen kann.
+    
+    Returns:
+        tuple: (WHERE-Klausel, Parameter-Liste)
+    """
     where = []
     params = []
+    
     if year:
-        where.append("YEAR(datum) = %s")
-        params.append(year)
+        year_int = int(year)
+        # PERFORMANCE: Datumsbereich statt YEAR() für Index-Nutzung
+        where.append("datum >= %s AND datum < %s")
+        params.extend([f"{year_int}-01-01", f"{year_int + 1}-01-01"])
+    
     if month:
         if isinstance(month, list):
-            placeholders = ",".join(["%s"] * len(month))
-            where.append(f"MONTH(datum) IN ({placeholders})")
-            params.extend(month)
+            # Mehrere Monate: Verwende OR-Klauseln mit Datumsbereichen
+            month_conditions = []
+            for m in month:
+                month_int = int(m)
+                if year:
+                    year_int = int(year)
+                    month_end = _get_month_end_date(year_int, month_int)
+                    month_conditions.append("(datum >= %s AND datum < %s)")
+                    params.extend([
+                        f"{year_int}-{month_int:02d}-01",
+                        f"{year_int}-{int(month_int)+1:02d}-01" if month_int < 12 else f"{year_int+1}-01-01"
+                    ])
+                else:
+                    # Ohne Jahr: Verwende MONTH() (weniger optimal, aber notwendig)
+                    month_conditions.append("MONTH(datum) = %s")
+                    params.append(month_int)
+            if month_conditions:
+                where.append(f"({' OR '.join(month_conditions)})")
         else:
-            where.append("MONTH(datum) = %s")
-            params.append(month)
+            month_int = int(month)
+            if year:
+                year_int = int(year)
+                # PERFORMANCE: Datumsbereich statt MONTH() für Index-Nutzung
+                where.append("datum >= %s AND datum < %s")
+                # Nächster Monat als Enddatum (exklusiv)
+                if month_int < 12:
+                    params.extend([
+                        f"{year_int}-{month_int:02d}-01",
+                        f"{year_int}-{month_int+1:02d}-01"
+                    ])
+                else:
+                    params.extend([
+                        f"{year_int}-12-01",
+                        f"{year_int+1}-01-01"
+                    ])
+            else:
+                # Ohne Jahr: Verwende MONTH() (weniger optimal, aber notwendig)
+                where.append("MONTH(datum) = %s")
+                params.append(month_int)
+    
+    return where, params
+
+
+def _days_in_month(year, month):
+    """Hilfsfunktion: Gibt Anzahl Tage in einem Monat zurück."""
+    from calendar import monthrange
+    return monthrange(int(year), int(month))[1]
+
+
+def _get_month_end_date(year, month):
+    """Gibt das Enddatum eines Monats zurück (für Datumsbereich)."""
+    days = _days_in_month(year, month)
+    return f"{int(year)}-{int(month):02d}-{days:02d}"
+
+
+def fetch_category_summary(year=None, month=None):
+    """
+    PERFORMANCE-OPTIMIERT: Verwendet Datumsbereiche statt YEAR()/MONTH() für Index-Nutzung.
+    """
+    where, params = _build_date_filter(year, month)
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     sql = f"""
         SELECT kategorie,
@@ -85,19 +168,10 @@ def fetch_category_summary(year=None, month=None):
 
 
 def fetch_time_series(year=None, month=None):
-    where = []
-    params = []
-    if year:
-        where.append("YEAR(datum) = %s")
-        params.append(year)
-    if month:
-        if isinstance(month, list):
-            placeholders = ",".join(["%s"] * len(month))
-            where.append(f"MONTH(datum) IN ({placeholders})")
-            params.extend(month)
-        else:
-            where.append("MONTH(datum) = %s")
-            params.append(month)
+    """
+    PERFORMANCE-OPTIMIERT: Verwendet Datumsbereiche statt YEAR()/MONTH() für Index-Nutzung.
+    """
+    where, params = _build_date_filter(year, month)
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     sql = f"""
         SELECT DATE_FORMAT(datum, '%%Y-%%m-01') AS period,
@@ -116,19 +190,14 @@ def fetch_time_series(year=None, month=None):
 
 
 def fetch_einzahlungen_by_iban(year=None, month=None):
+    """
+    PERFORMANCE-OPTIMIERT: Verwendet Datumsbereiche statt YEAR()/MONTH() für Index-Nutzung.
+    """
     where = ["haben > 0", "gegen_iban IS NOT NULL", "gegen_iban != ''"]
     params = []
-    if year:
-        where.append("YEAR(datum) = %s")
-        params.append(year)
-    if month:
-        if isinstance(month, list):
-            placeholders = ",".join(["%s"] * len(month))
-            where.append(f"MONTH(datum) IN ({placeholders})")
-            params.extend(month)
-        else:
-            where.append("MONTH(datum) = %s")
-            params.append(month)
+    date_where, date_params = _build_date_filter(year, month)
+    where.extend(date_where)
+    params.extend(date_params)
     where_sql = f"WHERE {' AND '.join(where)}"
     sql = f"""
         SELECT gegen_iban,
@@ -162,8 +231,13 @@ def fetch_konten():
         return [r[0] for r in rows]
 
 
+@cached(timeout=1800)  # PERFORMANCE: Cache für 30 Minuten (selten ändernde Daten)
 def fetch_konten_details():
-    """Liefert Konten aus der Konten-Tabelle (für Einstellungen)."""
+    """
+    Liefert Konten aus der Konten-Tabelle (für Einstellungen).
+    
+    PERFORMANCE: Gecacht für 30 Minuten, da Konten sich selten ändern.
+    """
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -183,19 +257,16 @@ def fetch_konten_details():
 
 
 def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kategorie2_filter=None, kategorie_filter=None, beschreibung_filter=None):
+    """
+    PERFORMANCE-OPTIMIERT: Verwendet Datumsbereiche statt YEAR()/MONTH() für Index-Nutzung.
+    """
     where = []
     params = []
-    if year:
-        where.append("YEAR(datum) = %s")
-        params.append(year)
-    if month:
-        if isinstance(month, list):
-            placeholders = ",".join(["%s"] * len(month))
-            where.append(f"MONTH(datum) IN ({placeholders})")
-            params.extend(month)
-        else:
-            where.append("MONTH(datum) = %s")
-            params.append(month)
+    # PERFORMANCE: Datumsfilter mit Index-freundlichen Datumsbereichen
+    date_where, date_params = _build_date_filter(year, month)
+    where.extend(date_where)
+    params.extend(date_params)
+    
     if konto:
         where.append("konto = %s")
         params.append(konto)
@@ -248,17 +319,17 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
         rows = cur.fetchall()
         cur.close()
         if has_beleg:
-            from utils.beleg_upload import get_beleg_path
+            # PERFORMANCE: Datei-Existenz-Prüfungen entfernt - sehr langsam bei vielen Buchungen
+            # Die Prüfung wird nur noch bei Bedarf (z.B. Download) durchgeführt
+            # Stattdessen vertrauen wir auf die Datenbank und prüfen nur bei tatsächlichem Zugriff
+            from utils.beleg_upload import BELEG_BASE_DIR
             buchungen = []
             for r in rows:
                 beleg_pfad = r[9] if len(r) > 9 else None
                 
-                # Prüfe, ob Beleg-Datei wirklich existiert
-                if beleg_pfad:
-                    full_path = get_beleg_path(beleg_pfad)
-                    if not full_path or not os.path.exists(full_path):
-                        # Datei existiert nicht - setze auf None (wird beim nächsten Laden bereinigt)
-                        beleg_pfad = None
+                # PERFORMANCE-OPTIMIERUNG: Keine os.path.exists() Prüfung mehr in der Schleife
+                # Die Datei-Existenz wird nur noch beim tatsächlichen Download geprüft
+                # Dies spart bei 100 Buchungen ca. 100 Dateisystem-Zugriffe pro Seitenaufruf
                 
                 buchungen.append({
                     "id": r[0],
@@ -270,7 +341,7 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
                     "kategorie": r[6] or "",
                     "kategorie2": r[7] or "",
                     "konto": r[8] or "",
-                    "beleg_pfad": beleg_pfad,  # None wenn Datei nicht existiert
+                    "beleg_pfad": beleg_pfad,  # Kann None sein, wird beim Download geprüft
                 })
         else:
             buchungen = [
@@ -294,8 +365,13 @@ def fetch_buchungen(year=None, month=None, page=1, per_page=30, konto=None, kate
     return buchungen, total, total_pages
 
 
+@cached(timeout=60)  # PERFORMANCE: Cache für 1 Minute (kann sich durch neue Buchungen ändern)
 def fetch_total_saldo():
-    """Gibt den aktuellen Gesamtsaldo über alle Buchungen zurück (Haben - Soll)."""
+    """
+    Gibt den aktuellen Gesamtsaldo über alle Buchungen zurück (Haben - Soll).
+    
+    PERFORMANCE: Gecacht für 1 Minute, da sich Saldo durch neue Buchungen ändern kann.
+    """
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -320,20 +396,14 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None, compare_
     else:
         compare_year = str(compare_year)
     
+    # PERFORMANCE-OPTIMIERUNG: Verwende Datumsbereiche statt YEAR()/MONTH()
     # Aktuelles Jahr
     where_current = []
     params_current = []
-    if year:
-        where_current.append("YEAR(datum) = %s")
-        params_current.append(year)
-    if month:
-        if isinstance(month, list):
-            placeholders = ",".join(["%s"] * len(month))
-            where_current.append(f"MONTH(datum) IN ({placeholders})")
-            params_current.extend(month)
-        else:
-            where_current.append("MONTH(datum) = %s")
-            params_current.append(month)
+    date_where_current, date_params_current = _build_date_filter(year, month)
+    where_current.extend(date_where_current)
+    params_current.extend(date_params_current)
+    
     if konto:
         where_current.append("konto = %s")
         params_current.append(konto)
@@ -346,22 +416,16 @@ def fetch_analysis_data(year, month, konto=None, kategorie_filter=None, compare_
     where_previous = []
     params_previous = []
     if compare_year:
-        where_previous.append("YEAR(datum) = %s")
-        params_previous.append(compare_year)
-    if month:
-        if isinstance(month, list):
-            placeholders = ",".join(["%s"] * len(month))
-            where_previous.append(f"MONTH(datum) IN ({placeholders})")
-            params_previous.extend(month)
-        else:
-            where_previous.append("MONTH(datum) = %s")
-            params_previous.append(month)
-    if konto:
-        where_previous.append("konto = %s")
-        params_previous.append(konto)
-    if kategorie_filter:
-        where_previous.append("kategorie = %s")
-        params_previous.append(kategorie_filter)
+        date_where_previous, date_params_previous = _build_date_filter(compare_year, month)
+        where_previous.extend(date_where_previous)
+        params_previous.extend(date_params_previous)
+        
+        if konto:
+            where_previous.append("konto = %s")
+            params_previous.append(konto)
+        if kategorie_filter:
+            where_previous.append("kategorie = %s")
+            params_previous.append(kategorie_filter)
     where_sql_previous = f"WHERE {' AND '.join(where_previous)}" if where_previous else ""
     
     # Gesamtwerte aktuelles Jahr

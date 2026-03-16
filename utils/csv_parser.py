@@ -201,7 +201,7 @@ class BankCSVParser:
         is_negative = amount_str.startswith('-') or amount_str.startswith('(')
         amount_str = amount_str.lstrip('-(').rstrip(')')
         
-        # Erkenne Format: Komma oder Punkt als Dezimaltrennzeichen
+        # Erkenne Format: Komma oder Punkt als Dezimal- bzw. Tausendertrennzeichen
         if ',' in amount_str and '.' in amount_str:
             # Beide vorhanden: letztes ist Dezimaltrennzeichen
             if amount_str.rindex(',') > amount_str.rindex('.'):
@@ -214,12 +214,19 @@ class BankCSVParser:
             # Nur Komma: könnte Dezimal- oder Tausendertrennzeichen sein
             parts = amount_str.split(',')
             if len(parts) == 2 and len(parts[1]) <= 2:
-                # Dezimaltrennzeichen
+                # Dezimaltrennzeichen (z. B. "85,40")
                 amount_str = amount_str.replace(',', '.')
             else:
                 # Tausendertrennzeichen
                 amount_str = amount_str.replace(',', '')
-        # Punkt bleibt wie er ist (wird als Dezimaltrennzeichen interpretiert)
+        elif '.' in amount_str:
+            # Nur Punkt: z. B. "1.149" (DE = 1149) oder "1.15" (EN = 1,15)
+            # Alle Abschnitte nach einem Punkt genau 3 Ziffern → deutsches Tausendertrennzeichen
+            parts = amount_str.split('.')
+            if all(len(p) == 3 and p.isdigit() for p in parts[1:]):
+                amount_str = amount_str.replace('.', '')  # "1.149" → 1149, "1.234.567" → 1234567
+            else:
+                pass  # Punkt = Dezimaltrennzeichen (z. B. "1.15" → 1.15)
         
         try:
             value = float(amount_str)

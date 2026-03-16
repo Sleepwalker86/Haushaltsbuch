@@ -165,11 +165,13 @@ for csv_file in csv_files:
                 konto = row_data['konto'] or eigene_iban or ''
                 
                 # DUPLIKATSPRÜFUNG
+                # Wichtig: Beschreibung nicht verwenden, da sich Texte je nach Export/Parser leicht unterscheiden
+                # und sonst echte Duplikate nicht erkannt würden.
                 cursor.execute("""
                     SELECT COUNT(*) FROM buchungen
-                    WHERE datum=%s AND beschreibung=%s AND soll=%s AND haben=%s
+                    WHERE datum=%s AND soll=%s AND haben=%s
                     AND konto=%s AND gegen_iban=%s
-                """, (datum, beschreibung, soll, haben, konto, gegen_iban))
+                """, (datum, soll, haben, konto, gegen_iban))
 
                 if cursor.fetchone()[0] == 0:
                     cursor.execute("""

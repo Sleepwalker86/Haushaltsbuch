@@ -36,7 +36,12 @@
             <input type="number" class="form-control" id="year" name="year" placeholder="z.B. 2025" value="{{ year }}" min="2000" max="2100">
           </div>
           <div class="col-12 col-md-10">
-            <label class="form-label">Monat(e)</label>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label mb-0">Monat(e)</label>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="setCurrentMonthBtn" title="Nur aktuellen Monat auswählen">
+                Aktueller Monat
+              </button>
+            </div>
             <div class="row g-2">
               {% for m, name in [
                 (1,'Jan'),(2,'Feb'),(3,'Mär'),(4,'Apr'),
@@ -45,7 +50,7 @@
               ] %}
               <div class="col-2 col-md-2">
                 <div class="form-check">
-                  <input class="form-check-input"
+                  <input class="form-check-input month-checkbox"
                          type="checkbox"
                          name="month"
                          value="{{ m }}"
@@ -118,4 +123,28 @@
     </div>
   </div>
 </div>
+<script>
+(function() {
+  // Button für aktuellen Monat
+  const setCurrentMonthBtn = document.getElementById('setCurrentMonthBtn');
+  if (setCurrentMonthBtn) {
+    setCurrentMonthBtn.addEventListener('click', function() {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // JavaScript Monate sind 0-basiert
+      
+      // Alle Checkboxen deaktivieren
+      const checkboxes = document.querySelectorAll('.month-checkbox');
+      checkboxes.forEach(function(cb) {
+        cb.checked = false;
+      });
+      
+      // Nur aktuellen Monat aktivieren
+      const currentCheckbox = document.getElementById('month' + currentMonth);
+      if (currentCheckbox) {
+        currentCheckbox.checked = true;
+      }
+    });
+  }
+})();
+</script>
 {% endmacro %}

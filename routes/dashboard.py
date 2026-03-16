@@ -193,19 +193,13 @@ def export_buchungen():
     kategorie2_filter = filters["kategorie2_filter"]
     beschreibung_filter = filters["beschreibung_filter"]
 
+    # PERFORMANCE-OPTIMIERUNG: Verwende Datumsbereiche statt YEAR()/MONTH() für Index-Nutzung
+    from services.data_service import _build_date_filter
     where = []
     params = []
-    if year:
-        where.append("YEAR(datum) = %s")
-        params.append(year)
-    if month:
-        if isinstance(month, list):
-            placeholders = ",".join(["%s"] * len(month))
-            where.append(f"MONTH(datum) IN ({placeholders})")
-            params.extend(month)
-        else:
-            where.append("MONTH(datum) = %s")
-            params.append(month)
+    date_where, date_params = _build_date_filter(year, month)
+    where.extend(date_where)
+    params.extend(date_params)
     if konto:
         where.append("konto = %s")
         params.append(konto)

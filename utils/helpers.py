@@ -23,7 +23,8 @@ def parse_filter_params():
     """Extrahiert und validiert Filter-Parameter aus Request."""
     today = date.today()
     default_year = str(today.year)
-    default_month = [str(today.month)]
+    # Standard: Alle Monate ausgewählt (1-12)
+    default_month = [str(i) for i in range(1, 13)]
     
     year = request.args.get("year") or default_year
     if year and not year.isdigit():
@@ -72,10 +73,16 @@ def save_config(config):
 
 
 def load_filter_data():
-    """Lädt Kategorien und Konten für Filter."""
+    """
+    Lädt Kategorien und Konten für Filter.
+    
+    PERFORMANCE: Die einzelnen Funktionen (fetch_categories, fetch_konten_details)
+    sind bereits gecacht, daher ist diese Funktion bereits optimiert.
+    """
     from flask import has_request_context, flash
     from services.data_service import fetch_categories, fetch_konten_details
     
+    # PERFORMANCE: fetch_categories() und fetch_konten_details() sind bereits gecacht
     kategorien = fetch_categories()
     konten = []
     try:

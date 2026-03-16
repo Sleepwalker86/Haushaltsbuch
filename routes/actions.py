@@ -419,3 +419,75 @@ def download_beleg(buchung_id):
             raise  # Re-raise abort exceptions
         current_app.logger.error(f"Fehler beim Download des Belegs {buchung_id}: {e}", exc_info=True)
         abort(500, description="Fehler beim Laden des Belegs")
+
+
+@bp.route("/buchungen/bulk-update", methods=["POST"])
+@csrf_protect
+def bulk_update_buchungen():
+    """
+    Weist mehreren ausgewählten Buchungen eine Kategorie zu
+    und setzt dabei das Flag manually_edit=1.
+    """
+    from flask import current_app
+    try:
+        selected_ids_raw = request.form.getlist("selected_ids")
+        bulk_kategorie = (request.form.get("bulk_kategorie") or "").strip()
+
+        # Redirect-Parameter aus Formular rekonstruieren
+        redirect_params = {}
+        if request.form.get("year"):
+            redirect_params["year"] = request.form.get("year")
+        if request.form.getlist("month"):
+            redirect_params["month"] = request.form.getlist("month")
+        if request.form.get("page"):
+            redirect_params["page"] = request.form.get("page", 1)
+        if request.form.get("konto"):
+            redirect_params["konto"] = request.form.get("konto")
+        if request.form.get("kategorie_filter"):
+            redirect_params["kategorie_filter"] = request.form.get("kategorie_filter")
+        if request.form.get("kategorie2_filter"):
+            redirect_params["kategorie2_filter"] = request.form.get("kategorie2_filter")
+        if request.form.get("beschreibung_filter"):
+            redirect_params["beschreibung_filter"] = request.form.get("beschreibung_filter")
+
+        # Validierung
+        if not selected_ids_raw:
+            flash("Bitte mindestens eine Buchung auswählen.", "error")
+            return redirect(url_for("dashboard.buchungen", **redirect_params))
+        if not bulk_kategorie:
+            flash("Bitte eine Kategorie für die ausgewählten Buchungen wählen.", "error")
+            return redirect(url_for("dashboard.buchungen", **redirect_params))
+
+        # IDs in Integer konvertieren und ungültige Einträge filtern
+        selected_ids = []
+        for value in selected_ids_raw:
+            try:
+                selected_ids.append(int(value))
+            except (TypeError, ValueError):
+                continue
+
+        if not selected_ids:
+            flash("Keine gültigen Buchungen ausgewählt.", "error")
+            return redirect(url_for("dashboard.buchungen", **redirect_params))
+
+        placeholders = ",".join(["%s"] * len(selected_ids))
+        sql = f"UPDATE buchungen SET kategorie=%s, manually_edit=1 WHERE id IN ({placeholders})"
+        params = [bulk_kategorie] + selected_ids
+
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(sql, params)
+            updated_count = cur.rowcount or 0
+            conn.commit()
+            cur.close()
+
+        flash(f"{updated_count} Buchung(en) wurden aktualisiert.", "success")
+        current_app.logger.info(
+            f"Bulk-Update Buchungen: {updated_count} Einträge auf Kategorie '{bulk_kategorie}' gesetzt, manually_edit=1"
+        )
+        return redirect(url_for("dashboard.buchungen", **redirect_params))
+    except Exception as exc:
+        current_app.logger.error(f"Fehler beim Bulk-Update der Buchungen: {exc}", exc_info=True)
+        flash(f"Bulk-Update der Buchungen ist fehlgeschlagen: {exc}", "error")
+        # Fallback-Redirect ohne zusätzliche Parameter
+        return redirect(url_for("dashboard.buchungen"))
